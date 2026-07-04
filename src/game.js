@@ -1,7 +1,12 @@
 /* ============================================================
    HAGIMON — Core Game Logic
-   The pilgrim walks a Pilgrimage of seven Trials, one for
-   each deadly sin, invoking saints for intercession.
+   Each pilgrimage is a complete, self-contained game. The seven
+   deadly sins begin in a pool, each with Power (how strong they
+   are) and Prevalence (how likely they are to be called). Win a
+   trial and the sin's power breaks by your margin of victory;
+   lose and it grows stronger and more prevalent — and costs you
+   one of three Resolve. Drive every sin's power to zero to
+   triumph. Nothing carries over between pilgrimages.
 
    Classes: Saint, Sin, Pilgrim, Trial, Pilgrimage.
    No dependencies beyond data.js. Works in browser and Node.
@@ -30,11 +35,25 @@
   const MAX_RESOLVE = 3;
   const STARTING_DULIA = 12;
   const STARTER_SAINT = "St. Jude"; // the patron of lost causes walks with every new pilgrim
-  const TRIALS_PER_PILGRIMAGE = 7;
-  const COMPLETION_GRACE_BONUS = 7;
-  const COMPLETION_DULIA_BONUS = 5;
+
+  // The sin pool
+  const SIN_START_POWER = 12;
+  const SIN_START_PREVALENCE = 3;
+  const SIN_POWER_CAP = 18;
+  const SIN_PREVALENCE_CAP = 9;
+  const SIN_GROWTH_ON_LOSS = 2; // power gained when the pilgrim falls
+  const SIN_SPREAD_ON_LOSS = 2; // prevalence gained when the pilgrim falls
+  const DAMAGE_CAP = 4; // max power broken by one victory
+  const PETER_DAMAGE = 3; // Keys of the Kingdom auto-success breaks this much
+
   const PATRON_BONUS = 2;
-  const DOMINION_MAX = 5;
+
+  function severityForPower(power) {
+    for (const tier of SEVERITY_TIERS) {
+      if (power <= tier.maxPower) return tier;
+    }
+    return SEVERITY_TIERS[SEVERITY_TIERS.length - 1];
+  }
 
   /* ------------------------- Saint -------------------------- */
 
@@ -49,8 +68,8 @@
       this.abilityKey = def.abilityKey;
       this.patronSin = def.patronSin;
       this.patronage = def.patronage;
-      this.duliaCost = RARITY_DULIA[def.rarity] || 2;
-      this.unlockCost = RARITY_UNLOCK[def.rarity] || 8;
+      this.duliaCost = RARITY_DULIA[def.rarity] || 1;
+      this.unlockCost = RARITY_UNLOCK[def.rarity] || 6;
     }
 
     /** Virtues with the rarity bonus applied (may exceed 10). */
@@ -85,43 +104,41 @@
         patronSin: this.patronSin,
         patronage: this.patronage,
         duliaCost: this.duliaCost,
+        unlockCost: this.unlockCost,
       };
     }
   }
 
-  /* -------------------------- Sin --------------------------- */
+  /* -------------------------- Sin ---------------------------
+     A manifestation of a sin from the pool, at its current
+     power. Severity is a live label for that power.            */
 
   class Sin {
-    constructor(def, severityName, dominion, rng) {
-      rng = rng || Math.random;
+    constructor(def, power) {
       this.name = def.name;
       this.emblem = def.emblem;
       this.virtue = def.virtue; // the countering virtue it assails
       this.flavor = def.flavor;
-      const tier = SEVERITY_TIERS.find((t) => t.name === severityName) || SEVERITY_TIERS[0];
+      this.power = Math.max(0, power);
+      const tier = severityForPower(this.power);
       this.severity = tier.name; // "Venial" | "Grave" | "Mortal"
       this.gracePrize = tier.grace;
       this.duliaPrize = tier.dulia;
-      // Dominion: how much stronger this sin has grown from the
-      // pilgrim's past falls to it (+1 power per fall).
-      this.dominion = Math.max(0, dominion || 0);
-      // Power is rolled when the sin manifests and shown to the player.
-      this.power = tier.basePower + this.dominion + 1 + Math.floor(rng() * 4);
     }
 
     toJSON() {
-      return { name: this.name, severity: this.severity, power: this.power, dominion: this.dominion };
+      return { name: this.name, power: this.power };
     }
 
-    static fromJSON(json, rng) {
+    static fromJSON(json) {
       const def = SIN_DATA.find((d) => d.name === json.name) || SIN_DATA[0];
-      const sin = new Sin(def, json.severity, json.dominion || 0, rng);
-      sin.power = json.power;
-      return sin;
+      return new Sin(def, json.power);
     }
   }
 
-  /* ------------------------ Pilgrim ------------------------- */
+  /* ------------------------ Pilgrim -------------------------
+     The pilgrim's build for ONE pilgrimage: virtues, Grace,
+     Dulia, and unlocked saints. A new pilgrimage starts fresh.  */
 
   class Pilgrim {
     constructor(state) {
@@ -131,29 +148,18 @@
         this.virtues[v] = clamp((state.virtues && state.virtues[v]) || STARTING_VIRTUE, 1, MAX_VIRTUE);
       }
       this.grace = Math.max(0, state.grace || 0);
-      // Dulia: persistent devotion, earned by overcoming trials.
-      // Spent both to unlock saints and to invoke them.
       this.dulia = typeof state.dulia === "number" ? Math.max(0, state.dulia) : STARTING_DULIA;
       this.unlockedSaints =
         Array.isArray(state.unlockedSaints) && state.unlockedSaints.length > 0
           ? state.unlockedSaints.slice()
           : [STARTER_SAINT];
-      // Dominion: per-sin strength grown from the pilgrim's falls.
-      this.dominion = {};
-      for (const s of SIN_DATA) {
-        this.dominion[s.name] = Math.max(0, (state.dominion && state.dominion[s.name]) || 0);
-      }
-      this.stats = Object.assign(
-        { pilgrimages: 0, completed: 0, sinsBanished: 0, trialsFaced: 0 },
-        state.stats || {}
-      );
     }
 
     isUnlocked(saintName) {
       return this.unlockedSaints.indexOf(saintName) !== -1;
     }
 
-    /** Spend Dulia to permanently unlock a saint. Returns { ok, error }. */
+    /** Spend Dulia to unlock a saint for this pilgrimage. Returns { ok, error }. */
     unlockSaint(saint) {
       if (this.isUnlocked(saint.name)) return { ok: false, error: saint.name + " already walks with you." };
       if (this.dulia < saint.unlockCost) {
@@ -172,28 +178,12 @@
       return this.dulia;
     }
 
-    dominionOf(sinName) {
-      return this.dominion[sinName] || 0;
-    }
-
-    /** A fall: the sin grows more powerful and more probable (cap 5). */
-    recordFall(sinName) {
-      this.dominion[sinName] = Math.min(DOMINION_MAX, this.dominionOf(sinName) + 1);
-      return this.dominion[sinName];
-    }
-
-    /** A triumph loosens the sin's hold (min 0). */
-    easeDominion(sinName) {
-      this.dominion[sinName] = Math.max(0, this.dominionOf(sinName) - 1);
-      return this.dominion[sinName];
-    }
-
     /** Grace cost to raise a virtue by one point: its current value. */
     raiseCost(virtueName) {
       return this.virtues[virtueName];
     }
 
-    /** Spend Grace to raise a virtue. Returns { ok, error }. */
+    /** Spend Grace to raise a virtue for this pilgrimage. Returns { ok, error }. */
     raiseVirtue(virtueName) {
       if (!(virtueName in this.virtues)) return { ok: false, error: "Unknown virtue." };
       if (this.virtues[virtueName] >= MAX_VIRTUE) {
@@ -219,15 +209,13 @@
         grace: this.grace,
         dulia: this.dulia,
         unlockedSaints: this.unlockedSaints.slice(),
-        dominion: Object.assign({}, this.dominion),
-        stats: Object.assign({}, this.stats),
       };
     }
   }
 
   /* ------------------------- Trial --------------------------
-     One confrontation: the pilgrim, assailed by a sin, with
-     (optionally) one saint interceding.                        */
+     One confrontation: the pilgrim, assailed by a sin at its
+     current power, with (optionally) one saint interceding.     */
 
   class Trial {
     constructor(pilgrim, sin, saint, rng) {
@@ -239,8 +227,8 @@
 
     /**
      * Resolve the trial.
-     * Returns { victory, defense, power, log[], graceEarned,
-     *           resolveRestored, providence }
+     * Returns { victory, defense, power, damage, log[],
+     *           graceEarned, resolveRestored, providence }
      */
     resolve() {
       const p = this.pilgrim;
@@ -254,17 +242,20 @@
           ") assails your " + tested + "."
       );
 
-      // --- St. Peter: Venial sins are banished outright ------
+      // --- St. Peter: Venial-band sins fall outright ----------
       if (saint && saint.abilityKey === "peter" && sin.severity === "Venial") {
-        log.push("🗝️ " + saint.name + " turns the Keys of the Kingdom — the venial sin is banished outright.");
-        return this._finish(true, sin.power, sin.power, log, 0);
+        log.push(
+          "🗝️ " + saint.name + " turns the Keys of the Kingdom — the weakened sin cannot stand. " +
+            "Its power breaks by " + PETER_DAMAGE + "."
+        );
+        return this._finish(true, sin.power, sin.power, PETER_DAMAGE, log, 0);
       }
 
-      // --- Sin's effective power ------------------------------
+      // --- Sin's effective power for this trial ---------------
       let power = sin.power;
       if (saint && saint.abilityKey === "cecilia") {
-        power -= 2;
-        log.push("🎵 " + saint.name + "'s Song of Heaven weakens the tempter: power falls to " + power + ".");
+        power = Math.max(1, power - 2);
+        log.push("🎵 " + saint.name + "'s Song of Heaven weakens the tempter: power falls to " + power + " for this trial.");
       }
 
       // --- Build the defense ----------------------------------
@@ -324,12 +315,21 @@
 
       // --- Verdict ---------------------------------------------
       let victory;
+      let damage = 0;
       if (defense > power) {
         victory = true;
-        log.push("✨ The temptation breaks — " + sin.name + " is banished, " + defense + " to " + power + ".");
+        damage = clamp(defense - power, 1, DAMAGE_CAP);
+        log.push(
+          "✨ The temptation breaks, " + defense + " to " + power +
+            " — " + sin.name + "'s power is broken by " + damage + "."
+        );
       } else if (defense === power && saint && saint.abilityKey === "catherine") {
         victory = true;
-        log.push("☸️ Perfectly matched at " + defense + " — " + saint.name + "'s Unbroken Wheel turns the tie to victory.");
+        damage = 1;
+        log.push(
+          "☸️ Perfectly matched at " + defense + " — " + saint.name +
+            "'s Unbroken Wheel turns the tie to victory. " + sin.name + "'s power is broken by 1."
+        );
       } else if (defense === power) {
         victory = false;
         log.push("⚖️ Perfectly matched at " + defense + " — but the sin's grip holds. The trial is lost.");
@@ -338,11 +338,11 @@
         log.push("💔 " + sin.name + " prevails, " + power + " to " + defense + ". You stumble, but the road goes on.");
       }
 
-      return this._finish(victory, defense, power, log, providence);
+      return this._finish(victory, defense, power, damage, log, providence);
     }
 
-    /** Award grace, apply post-trial abilities, update records. */
-    _finish(victory, defense, power, log, providence) {
+    /** Award grace, apply post-trial abilities. */
+    _finish(victory, defense, power, damage, log, providence) {
       const p = this.pilgrim;
       const saint = this.saint;
       let grace = victory ? this.sin.gracePrize : 2;
@@ -365,13 +365,12 @@
       }
 
       p.addGrace(grace);
-      p.stats.trialsFaced += 1;
-      if (victory) p.stats.sinsBanished += 1;
 
       return {
         victory: victory,
         defense: defense,
         power: power,
+        damage: damage,
         providence: providence,
         log: log,
         graceEarned: grace,
@@ -381,11 +380,9 @@
   }
 
   /* ---------------------- Pilgrimage ------------------------
-     A run of seven trials with severity escalating along the
-     road: trials 1–3 Venial, 4–5 Grave, 6–7 Mortal. Which sin
-     manifests is a weighted draw — sins the pilgrim has fallen
-     to carry Dominion, making them more powerful AND more
-     probable. Overcoming a sin eases its Dominion.             */
+     One complete game. The pool holds every sin's current Power
+     and Prevalence. Trials continue until every sin's power is
+     broken to zero (triumphant) or Resolve runs out (fallen).   */
 
   class Pilgrimage {
     constructor(pilgrim, rng) {
@@ -393,36 +390,41 @@
       this.rng = rng || Math.random;
       this.trialNumber = 1;
       this.resolve = MAX_RESOLVE; // hearts
-      // Contrition: setting out anew, every sin's grip loosens a little.
-      this.contrition = false;
-      for (const s of SIN_DATA) {
-        if (pilgrim.dominionOf(s.name) > 0) {
-          pilgrim.easeDominion(s.name);
-          this.contrition = true;
-        }
-      }
+      this.pool = SIN_DATA.map((d) => ({
+        name: d.name,
+        power: SIN_START_POWER,
+        prevalence: SIN_START_PREVALENCE,
+      }));
       this.currentSin = this._manifest();
-      this.outcome = null; // null while walking | "completed" | "fallen"
-      pilgrim.stats.pilgrimages += 1;
+      this.outcome = null; // null while walking | "triumphant" | "fallen"
     }
 
-    severityFor(trialNumber) {
-      if (trialNumber <= 3) return "Venial";
-      if (trialNumber <= 5) return "Grave";
-      return "Mortal";
+    /** Sins still standing (power > 0). */
+    activeSins() {
+      return this.pool.filter((e) => e.power > 0);
     }
 
-    /** Weighted draw: weight = 2 + the sin's Dominion. */
+    vanquishedCount() {
+      return this.pool.length - this.activeSins().length;
+    }
+
+    poolEntry(sinName) {
+      return this.pool.find((e) => e.name === sinName);
+    }
+
+    /** Weighted draw among standing sins: weight = prevalence. */
     _manifest() {
-      const weights = SIN_DATA.map((d) => 2 + this.pilgrim.dominionOf(d.name));
-      const total = weights.reduce((a, b) => a + b, 0);
+      const active = this.activeSins();
+      if (active.length === 0) return null;
+      const total = active.reduce((a, e) => a + e.prevalence, 0);
       let roll = this.rng() * total;
-      let def = SIN_DATA[SIN_DATA.length - 1];
-      for (let i = 0; i < SIN_DATA.length; i++) {
-        roll -= weights[i];
-        if (roll < 0) { def = SIN_DATA[i]; break; }
+      let entry = active[active.length - 1];
+      for (const e of active) {
+        roll -= e.prevalence;
+        if (roll < 0) { entry = e; break; }
       }
-      return new Sin(def, this.severityFor(this.trialNumber), this.pilgrim.dominionOf(def.name), this.rng);
+      const def = SIN_DATA.find((d) => d.name === entry.name);
+      return new Sin(def, entry.power);
     }
 
     /** Can this saint be invoked right now? (unlocked + affordable) */
@@ -432,7 +434,7 @@
 
     /**
      * Face the current sin, optionally with a saint (null = alone).
-     * Deducts Dulia, resolves the trial, advances the road.
+     * Deducts Dulia, resolves the trial, updates the pool.
      * Returns the trial result plus pilgrimage bookkeeping.
      */
     faceTrial(saint) {
@@ -445,58 +447,48 @@
       }
 
       if (saint) this.pilgrim.dulia -= saint.duliaCost;
-      const sinName = this.currentSin.name;
+      const entry = this.poolEntry(this.currentSin.name);
       const result = new Trial(this.pilgrim, this.currentSin, saint, this.rng).resolve();
 
       if (result.victory) {
-        // Overcoming a strengthened sin pays a bounty: +1 Dulia per Dominion.
-        const bounty = this.currentSin.dominion;
-        this.pilgrim.addDulia(this.currentSin.duliaPrize + bounty);
-        result.log.push(
-          "✠ Your devotion deepens: +" + this.currentSin.duliaPrize + " Dulia" +
-            (bounty > 0 ? " (+" + bounty + " bounty for so mighty a foe)" : "") + "."
-        );
-        if (this.pilgrim.dominionOf(sinName) > 0) {
-          const d = this.pilgrim.easeDominion(sinName);
-          result.log.push("⛓️ " + sinName + "'s hold over you weakens (Dominion " + d + ").");
+        this.pilgrim.addDulia(this.currentSin.duliaPrize);
+        result.log.push("✠ Your devotion deepens: +" + this.currentSin.duliaPrize + " Dulia.");
+        entry.power = Math.max(0, entry.power - result.damage);
+        entry.prevalence = Math.max(1, entry.prevalence - 1);
+        if (entry.power === 0) {
+          result.log.push("🌟 " + entry.name + " is VANQUISHED — its power is utterly broken!");
+        } else {
+          result.log.push(
+            "📉 " + entry.name + " retreats: power " + entry.power + ", prevalence " + entry.prevalence + "."
+          );
         }
       } else {
         this.resolve -= 1;
         result.log.push("❤️ You lose 1 Resolve (" + this.resolve + " remaining).");
-        const d = this.pilgrim.recordFall(sinName);
+        entry.power = Math.min(SIN_POWER_CAP, entry.power + SIN_GROWTH_ON_LOSS);
+        entry.prevalence = Math.min(SIN_PREVALENCE_CAP, entry.prevalence + SIN_SPREAD_ON_LOSS);
         result.log.push(
-          "⛓️ Your fall feeds " + sinName + " — it grows more powerful and more likely to return (Dominion " + d + ")."
+          "📈 Your fall feeds " + entry.name + ": power " + entry.power + ", prevalence " + entry.prevalence + "."
         );
       }
       if (result.resolveRestored) {
         this.resolve = Math.min(MAX_RESOLVE, this.resolve + result.resolveRestored);
       }
 
-      // Advance the road
+      // End states, then the road continues
       if (this.resolve <= 0) {
         this.outcome = "fallen";
-        result.log.push("🌑 Your Resolve is spent. The pilgrimage ends here — but Grace earned is never lost.");
-      } else if (this.trialNumber >= TRIALS_PER_PILGRIMAGE) {
-        this.outcome = "completed";
-        this.pilgrim.addGrace(COMPLETION_GRACE_BONUS);
-        this.pilgrim.addDulia(COMPLETION_DULIA_BONUS);
-        this.pilgrim.stats.completed += 1;
-        // A completed pilgrimage purifies: every sin's Dominion eases by 1.
-        let eased = false;
-        for (const s of SIN_DATA) {
-          if (this.pilgrim.dominionOf(s.name) > 0) { this.pilgrim.easeDominion(s.name); eased = true; }
-        }
-        result.log.push(
-          "🌟 The seventh trial is past — the pilgrimage is complete! +" +
-            COMPLETION_GRACE_BONUS + " bonus Grace, +" + COMPLETION_DULIA_BONUS + " bonus Dulia." +
-            (eased ? " The journey purifies: every sin's Dominion eases by 1." : "")
-        );
+        result.log.push("🌑 Your Resolve is spent. This pilgrimage ends — the next begins anew.");
+      } else if (this.activeSins().length === 0) {
+        this.outcome = "triumphant";
+        result.log.push("🎺 ALL SEVEN SINS ARE VANQUISHED — the pilgrimage is TRIUMPHANT!");
       } else {
         this.trialNumber += 1;
         this.currentSin = this._manifest();
       }
 
       result.outcome = this.outcome;
+      result.vanquished = this.vanquishedCount();
       return result;
     }
 
@@ -504,7 +496,8 @@
       return {
         trialNumber: this.trialNumber,
         resolve: this.resolve,
-        currentSin: this.currentSin.toJSON(),
+        pool: this.pool.map((e) => ({ name: e.name, power: e.power, prevalence: e.prevalence })),
+        currentSin: this.currentSin ? this.currentSin.toJSON() : null,
         outcome: this.outcome,
       };
     }
@@ -515,7 +508,8 @@
       pg.rng = rng || Math.random;
       pg.trialNumber = json.trialNumber;
       pg.resolve = json.resolve;
-      pg.currentSin = Sin.fromJSON(json.currentSin, pg.rng);
+      pg.pool = (json.pool || []).map((e) => ({ name: e.name, power: e.power, prevalence: e.prevalence }));
+      pg.currentSin = json.currentSin ? Sin.fromJSON(json.currentSin) : null;
       pg.outcome = json.outcome || null;
       return pg;
     }
@@ -535,12 +529,17 @@
     Pilgrim,
     Trial,
     Pilgrimage,
+    severityForPower,
     MAX_VIRTUE,
     STARTING_VIRTUE,
     MAX_RESOLVE,
     STARTING_DULIA,
     STARTER_SAINT,
-    TRIALS_PER_PILGRIMAGE,
+    SIN_START_POWER,
+    SIN_START_PREVALENCE,
+    SIN_POWER_CAP,
+    SIN_PREVALENCE_CAP,
+    DAMAGE_CAP,
     PATRON_BONUS,
   };
 
