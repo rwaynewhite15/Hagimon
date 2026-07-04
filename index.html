@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="HAGIMON — Invoke the Saints. Battle for Grace. A Saint-themed trading card game." />
+  <title>✨ HAGIMON ✨ — Invoke the Saints</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✨</text></svg>" />
+  <link rel="stylesheet" href="src/styles.css" />
+</head>
+<body>
+  <main class="app">
+
+    <!-- ================= HOME ================= -->
+    <section id="screen-home" class="screen active">
+      <header class="hero">
+        <h1 class="game-title">✨ HAGIMON ✨</h1>
+        <p class="tagline">Invoke the Saints. Battle for Grace.</p>
+      </header>
+      <div id="home-deck-info"></div>
+      <nav class="home-nav">
+        <button class="btn primary" data-nav="builder">📿 Build Deck</button>
+        <button class="btn" data-nav="library">📜 View Saints</button>
+        <button class="btn battle" id="home-battle-btn" data-nav="battle" style="display:none">⚡ Battle</button>
+      </nav>
+      <footer class="home-footer">
+        <p>A trading card game of the seven virtues.<br />Win battles to earn Grace and level up your saints.</p>
+      </footer>
+    </section>
+
+    <!-- ================= SAINTS LIBRARY ================= -->
+    <section id="screen-library" class="screen">
+      <header class="screen-head">
+        <button class="btn back" data-nav="home">← Home</button>
+        <h2>📜 Saints Library</h2>
+      </header>
+      <p class="screen-sub">Tap a saint to view their full card.</p>
+      <div id="library-list" class="library-list"></div>
+    </section>
+
+    <!-- ================= DECK BUILDER ================= -->
+    <section id="screen-builder" class="screen">
+      <header class="screen-head">
+        <button class="btn back" data-nav="home">← Home</button>
+        <h2>📿 Deck Builder</h2>
+      </header>
+      <label class="deck-name-label" for="deck-name">Deck name</label>
+      <input id="deck-name" class="deck-name-input" type="text" maxlength="30" placeholder="My Deck" />
+      <div id="deck-progress"></div>
+      <p id="builder-hint" class="screen-sub"></p>
+      <div id="builder-list" class="builder-list"></div>
+      <div class="builder-actions">
+        <button class="btn" id="deck-fill">✨ Fill Deck</button>
+        <button class="btn danger" id="deck-clear">🗑 Clear</button>
+        <button class="btn primary" id="deck-save" disabled>💾 Save Deck</button>
+      </div>
+    </section>
+
+    <!-- ================= BATTLE ================= -->
+    <section id="screen-battle" class="screen">
+      <header class="screen-head">
+        <button class="btn back" data-nav="home">← Home</button>
+        <h2>⚡ Battle</h2>
+      </header>
+      <p class="screen-sub">Draw your champion, then pick an opponent from the saint list.</p>
+      <div id="opponent-picker" class="opponent-picker"></div>
+      <div id="battle-sides" class="battle-sides"></div>
+      <button class="btn battle wide" id="begin-battle" disabled>⚡ BEGIN BATTLE</button>
+      <div id="battle-result"></div>
+    </section>
+
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="src/data.js"></script>
+  <script src="src/game.js"></script>
+  <script src="src/app.js"></script>
+</body>
+</html>
