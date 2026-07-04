@@ -110,7 +110,7 @@ body {
   padding: 0.75rem 1rem;
   font-size: 0.92rem;
   max-width: 420px;
-  margin: 0 auto;
+  margin: 0 auto 0.6rem;
 }
 
 .deck-banner.incomplete { border-left-color: var(--text-dim); }
@@ -406,6 +406,19 @@ body {
 
 .sin-stats { font-size: 0.9rem; color: var(--text-dim); }
 .sin-stats strong { color: var(--text); }
+
+.sin-stats.dominion { color: #fca5a5; margin-top: 0.3rem; font-size: 0.82rem; }
+
+/* ---------------- locked saints ---------------- */
+
+.card.locked, .library-entry.compact.locked { opacity: 0.75; }
+.card.locked .virtues { opacity: 0.55; }
+
+.locked-note { color: #fca5a5; }
+
+.unlock-btn { display: block; width: 100%; margin-top: 0.8rem; font-size: 0.95rem; }
+
+.opponent-chip.locked { opacity: 0.45; border-style: dotted; }
 
 .picker-title {
   font-family: var(--serif);

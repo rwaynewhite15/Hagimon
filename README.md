@@ -27,18 +27,25 @@ Each sin assails its traditional contrary virtue:
 | 🕸️ Sloth | Diligence |
 
 ### The Pilgrimage
-A pilgrimage is **7 trials** — every deadly sin exactly once, in random order, escalating in severity: trials 1–3 are **Venial** (power 13–16), 4–5 are **Grave** (17–20), 6–7 are **Mortal** (21–24). You carry **3 Resolve (❤)**; losing a trial costs one. At zero, the pilgrimage ends — but Grace earned is never lost.
+A pilgrimage is **7 trials**, escalating in severity: trials 1–3 are **Venial** (power 11–14), 4–5 are **Grave** (15–18), 6–7 are **Mortal** (19–22). Which sin manifests at each trial is a weighted draw — sins that have beaten you before come back more often (see Dominion). You carry **3 Resolve (❤)**; losing a trial costs one. At zero, the pilgrimage ends — but everything you earned is kept.
 
-### Dulia — the currency of intercession
-You begin each pilgrimage with **10 Dulia (✠)** and gain **+2 per victory**. Invoking a saint costs Dulia by rarity:
+### Dulia — the currency of devotion
+Dulia (✠) is **persistent** — you start with 12 and earn more by overcoming trials: **+3/+4/+5** per victory (Venial/Grave/Mortal), **+5** for completing a pilgrimage, plus a **bounty of +1 per Dominion** when you banish a strengthened sin. It has two uses:
 
-| Rarity | Dulia cost | Virtue bonus |
-|---|---|---|
-| Common | ✠2 | +0 |
-| Blessed | ✠3 | +1 |
-| Canonized | ✠4 | +2 |
+| Rarity | Unlock (once) | Invoke (per trial) | Virtue bonus |
+|---|---|---|---|
+| Common | ✠6 | ✠1 | +0 |
+| Blessed | ✠12 | ✠2 | +1 |
+| Canonized | ✠20 | ✠3 | +2 |
 
-Spend it wisely — run dry and you face sin alone, with nothing but your own virtue.
+You begin with only **St. Jude** — the patron of lost causes — at your side. The other nine saints are **locked** until you unlock them in the Library. One wallet pays for both unlocking and invoking, so every invocation delays your next unlock. Run dry and you face sin alone, with nothing but your own virtue.
+
+### Dominion — your falls have consequences
+Every trial you lose feeds that sin: **+1 Dominion** (max 5), making it **more powerful** (+1 power per Dominion) *and* **more probable to manifest** in future trials. Dominion is worn down by:
+
+- **Defeating that sin:** −1 (and it pays the bounty above)
+- **Completing a pilgrimage:** −1 to every sin — the journey purifies
+- **Contrition:** each new pilgrimage begins with every sin's Dominion eased by 1
 
 ### Resolving a Trial
 Your **defense** = your tested virtue + the saint's matching virtue (with rarity bonus) + **+2 patron bonus** if the saint is invoked against that very sin + special abilities + a providence roll (1–4). If defense beats the sin's power, the sin is banished.
@@ -46,30 +53,30 @@ Your **defense** = your tested virtue + the saint's matching virtue (with rarity
 ### Grace — divine assistance
 Grace elevates, heals, and strengthens your natural abilities.
 
-- **Victory:** +3/+4/+5 Grace (Venial/Grave/Mortal) · **Defeat:** +1 Grace
+- **Victory:** +3/+4/+5 Grace (Venial/Grave/Mortal) · **Defeat:** +2 Grace (even failure teaches)
 - **Completing all 7 trials:** +7 bonus Grace
-- Spend Grace in the **⛪ Chapel** to raise a virtue permanently (raising to N costs N Grace, max 10)
+- Spend Grace in the **⛪ Chapel** to raise a virtue permanently (raising a virtue costs its current value, max 10)
 
-Your virtues, Grace, and any pilgrimage-in-progress are saved automatically in your browser.
+Your virtues, Grace, Dulia, unlocked saints, Dominion, and any pilgrimage-in-progress are saved automatically in your browser.
 
 ---
 
 ## The Saints
 
-| Saint | Rarity (✠) | Special Ability | Invoked against |
+| Saint | Rarity (unlock/invoke) | Special Ability | Invoked against |
 |---|---|---|---|
-| 🕊️ St. Francis | Canonized ✠4 | **Canticle of Creation** — +1 bonus Grace after every trial, won or lost | Greed |
-| ⚔️ St. Michael | Canonized ✠4 | **Sword of Justice** — +3 against Grave and Mortal sins | Pride |
-| 🗝️ St. Peter | Canonized ✠4 | **Keys of the Kingdom** — banishes Venial sins outright | Gluttony |
-| 🌹 St. Theresa | Blessed ✠3 | **The Little Way** — a victory with her restores 1 Resolve | Wrath |
-| 🚩 St. Joan of Arc | Blessed ✠3 | **Voices of Victory** — if the trial is being lost, +1 to +3 surge | Sloth |
-| 📖 St. Augustine | Blessed ✠3 | **Restless Heart** — +2 when your tested virtue is 4 or less | Lust |
-| ☸️ St. Catherine | Blessed ✠3 | **The Unbroken Wheel** — an exactly tied trial becomes a victory | Envy |
-| 🕯️ St. Jude | Common ✠2 | **Patron of Lost Causes** — +2 when trailing the sin by 3 or more | Sloth |
-| 🎵 St. Cecilia | Common ✠2 | **Song of Heaven** — lowers the sin's power by 2 | Gluttony |
-| 🛡️ St. Demetrius | Common ✠2 | **Warrior's Stand** — a soldier's endurance: +2 when the trial tests Patience | Wrath |
+| 🕯️ St. Jude | Common — **your starter** | **Patron of Lost Causes** — +2 when trailing the sin by 3 or more | Sloth |
+| 🎵 St. Cecilia | Common ✠6 / ✠1 | **Song of Heaven** — lowers the sin's power by 2 | Gluttony |
+| 🛡️ St. Demetrius | Common ✠6 / ✠1 | **Warrior's Stand** — a soldier's endurance: +2 when the trial tests Patience | Wrath |
+| 🌹 St. Theresa | Blessed ✠12 / ✠2 | **The Little Way** — a victory with her restores 1 Resolve | Wrath |
+| 🚩 St. Joan of Arc | Blessed ✠12 / ✠2 | **Voices of Victory** — if the trial is being lost, +1 to +3 surge | Sloth |
+| 📖 St. Augustine | Blessed ✠12 / ✠2 | **Restless Heart** — +2 when your tested virtue is 4 or less | Lust |
+| ☸️ St. Catherine | Blessed ✠12 / ✠2 | **The Unbroken Wheel** — an exactly tied trial becomes a victory | Envy |
+| 🕊️ St. Francis | Canonized ✠20 / ✠3 | **Canticle of Creation** — +1 bonus Grace after every trial, won or lost | Greed |
+| ⚔️ St. Michael | Canonized ✠20 / ✠3 | **Sword of Justice** — +3 against Grave and Mortal sins | Pride |
+| 🗝️ St. Peter | Canonized ✠20 / ✠3 | **Keys of the Kingdom** — banishes Venial sins outright | Gluttony |
 
-**Strategy tips:** match the saint's strong virtue to the sin's tested virtue; save your Canonized invocations for Mortal trials; Peter trivializes one Venial trial; Augustine shines early while your virtues are weak; and when Dulia runs low, a Common saint with the right virtue beats an expensive mismatch.
+**Strategy tips:** unlock the cheap Commons early to cover more virtues; match the saint's strong virtue to the sin's tested virtue; don't let one sin snowball — a high-Dominion sin keeps returning, so spend what it takes to break it (the bounty repays you); save Canonized invocations for Mortal trials; and every invocation delays your next unlock, so face the easiest Venial trials with cheap saints.
 
 ---
 
