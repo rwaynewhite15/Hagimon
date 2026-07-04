@@ -27,23 +27,32 @@ Each sin assails its traditional contrary virtue:
 | 🕸️ Sloth | Diligence |
 
 ### The Sin Pool — how you win
-All seven sins begin the pilgrimage with **Power 12** and **Prevalence 3**:
+All seven sins begin the pilgrimage with **Power 13** and **Prevalence 3**:
 
 - **Power** is how strong a sin is — your trial is fought against its current power.
-- **Prevalence** is how likely it is to be called — each trial, the next sin is a weighted draw from the pool.
+- **Prevalence** is how likely it is to be called — the sins that manifest each turn are a weighted draw from the pool.
 
 Every trial moves the pool:
 
-- **Win** → the sin's power breaks by your **margin of victory** (1–5; decisive wins break more) and its prevalence falls by 1. At **power 0 the sin is vanquished** and never manifests again.
+- **Win** → the sin's power breaks by your **margin of victory** (1–4; decisive wins break more) and its prevalence falls by 1. At **power 0 the sin is vanquished** and never manifests again.
 - **Lose** → the sin grows: **+2 power** (cap 18) and **+2 prevalence** (cap 9) — stronger *and* more often in your path — and you lose 1 of your **3 Resolve (❤)**.
 
 **Vanquish all seven sins to triumph. Lose all three Resolve and the pilgrimage falls.** Severity is a live label for a sin's current power — Venial (≤8), Grave (9–12), Mortal (13+) — and sets the prizes for beating it.
 
+### Choose your battle
+Each turn, **three sins manifest** — you decide which to face. But temptation resisted is not temptation defeated: the two sins you spurn each grow **+1 prevalence**, crowding your future choices. And **sin festers**: every 4th trial, every standing sin gains **+1 power**. Turtling has a price; the war rewards focus.
+
+### The saints tire
+A saint who intercedes **rests for the next trial** — you cannot lean on one champion. Depth of roster is survival. Two abilities are similarly bounded: **St. Theresa restores Resolve once per pilgrimage**, and **St. Peter's Keys cannot turn twice in a row**.
+
+### Know your odds — and plead when they fail
+Every invocation chip shows its **live odds and damage range** ("75% · dmg 1–4") before you commit — the game hides nothing but the providence roll (1–4). When a trial is lost, you may **Plead for Providence: ☩3 Grace to face the same sin again with a fresh roll**, once per trial. Keeping a Grace reserve for pleading versus spending it on virtues is one of the run's core tensions.
+
 ### Everything starts over
-A pilgrimage is one complete game. Virtues, Grace, Dulia, and unlocked saints all reset when a new pilgrimage begins — your build lives and dies with the run. Only your **records** (pilgrimages, triumphs, best progress) persist.
+A pilgrimage is one complete game. Virtues, Grace, Dulia, and unlocked saints all reset when a new pilgrimage begins — your build lives and dies with the run. Returning to the main menu ends the run. Only your **records** (pilgrimages, triumphs, best progress) persist. The **📜 Saints** library and **⛪ Chapel** are reached from inside the pilgrimage.
 
 ### Dulia — the currency of devotion
-You start each pilgrimage with **✠12** and earn more by winning trials: **+3/+4/+5** by the sin's severity band. It has two uses:
+You start each pilgrimage with **✠10** and earn more by winning trials: **+3/+4/+5** by the sin's severity band. It has two uses:
 
 | Rarity | Unlock (per run) | Invoke (per trial) | Virtue bonus |
 |---|---|---|---|
@@ -51,7 +60,7 @@ You start each pilgrimage with **✠12** and earn more by winning trials: **+3/+
 | Blessed | ✠12 | ✠2 | +1 |
 | Canonized | ✠20 | ✠3 | +2 |
 
-You begin with only **St. Jude** — the patron of lost causes — at your side. The other nine saints are **locked** until you unlock them in the Library, and one wallet pays for both unlocking and invoking. Run dry and you face sin alone, with nothing but your own virtue.
+You begin with only **St. Jude** — the patron of lost causes — at your side. The other nine saints are **locked** until you unlock them in the Saints library, and one wallet pays for both unlocking and invoking. Run dry and you face sin alone, with nothing but your own virtue.
 
 ### Resolving a Trial
 Your **defense** = your tested virtue + the saint's matching virtue (with rarity bonus) + **+2 patron bonus** if the saint is invoked against that very sin + special abilities + a providence roll (1–4). Beat the sin's current power and its power breaks by the margin.
@@ -60,7 +69,7 @@ Your **defense** = your tested virtue + the saint's matching virtue (with rarity
 Grace elevates, heals, and strengthens your natural abilities — for this pilgrimage.
 
 - **Victory:** +3/+4/+5 Grace by severity band · **Defeat:** +2 Grace (even failure teaches)
-- Spend Grace in the **⛪ Chapel** to raise a virtue (raising a virtue costs its current value, max 10)
+- Spend Grace in the **⛪ Chapel** to raise a virtue (raising a virtue costs its current value, max 10) — or bank it to plead for Providence
 
 An in-progress pilgrimage is saved automatically in your browser, so you can close the tab and pick the run back up.
 
@@ -73,15 +82,15 @@ An in-progress pilgrimage is saved automatically in your browser, so you can clo
 | 🕯️ St. Jude | Common — **your starter** | **Patron of Lost Causes** — +2 when trailing the sin by 3 or more | Sloth |
 | 🎵 St. Cecilia | Common ✠6 / ✠1 | **Song of Heaven** — lowers the sin's power by 2 | Gluttony |
 | 🛡️ St. Demetrius | Common ✠6 / ✠1 | **Warrior's Stand** — a soldier's endurance: +2 when the trial tests Patience | Wrath |
-| 🌹 St. Theresa | Blessed ✠12 / ✠2 | **The Little Way** — a victory with her restores 1 Resolve | Wrath |
+| 🌹 St. Theresa | Blessed ✠12 / ✠2 | **The Little Way** — a victory with her restores 1 Resolve (once per pilgrimage) | Wrath |
 | 🚩 St. Joan of Arc | Blessed ✠12 / ✠2 | **Voices of Victory** — if the trial is being lost, +1 to +3 surge | Sloth |
 | 📖 St. Augustine | Blessed ✠12 / ✠2 | **Restless Heart** — +2 when your tested virtue is 4 or less | Lust |
 | ☸️ St. Catherine | Blessed ✠12 / ✠2 | **The Unbroken Wheel** — an exactly tied trial becomes a victory | Envy |
 | 🕊️ St. Francis | Canonized ✠20 / ✠3 | **Canticle of Creation** — +1 bonus Grace after every trial, won or lost | Greed |
 | ⚔️ St. Michael | Canonized ✠20 / ✠3 | **Sword of Justice** — +3 against Grave and Mortal sins (power 9+) | Pride |
-| 🗝️ St. Peter | Canonized ✠20 / ✠3 | **Keys of the Kingdom** — trials against Venial sins (power ≤8) succeed outright | Gluttony |
+| 🗝️ St. Peter | Canonized ✠20 / ✠3 | **Keys of the Kingdom** — trials against Venial sins (power ≤8) succeed outright, but the Keys cannot turn twice in a row | Gluttony |
 
-**Strategy tips:** unlock the cheap Commons early to cover more virtues; match the saint's strong virtue to the sin's tested virtue; big margins break more power, so overkill is efficiency; don't let one sin snowball — a fed sin keeps returning at higher power; Peter is a finisher (weakened sins fall to him automatically); Theresa's Resolve restoration is the only healing in the game; and every invocation delays your next unlock, so spend the cheap saints on the sins they counter.
+**Strategy tips:** read the odds on every chip before committing; unlock Commons that cover the virtues your opening draw threatens; fatigue means you need at least two answers for every sin you plan to fight back-to-back; big margins break more power, so overkill is efficiency; the two sins you spurn each turn grow bolder, so don't dodge the same Mortal sin forever; keep ☩3 Grace banked for a plead when you're forced into a coin-flip trial; Theresa's single restore is the only healing in the game — time it; and every invocation delays your next unlock, so spend cheap saints on the sins they counter.
 
 ---
 
