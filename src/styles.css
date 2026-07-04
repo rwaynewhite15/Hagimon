@@ -513,6 +513,51 @@ body {
 
 .muted-note { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 0.6rem; }
 
+/* ---------------- aftermath summary & help ---------------- */
+
+.result-summary {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--gold);
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 0.9rem;
+  font-size: 0.9rem;
+}
+
+.result-summary.lost { border-left-color: var(--danger); }
+
+.result-summary details { margin-top: 0.3rem; }
+.result-summary summary { cursor: pointer; color: var(--text-dim); font-size: 0.8rem; }
+.result-summary .battle-log { margin-top: 0.5rem; }
+
+.help-panel {
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.help-panel .picker-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 0 0.5rem;
+}
+
+.help-list { list-style: none; display: grid; gap: 0.45rem; }
+.help-list li {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--border);
+}
+
+[data-explain] { cursor: help; }
+span[data-explain] { text-decoration: underline dotted rgba(255, 255, 255, 0.25); text-underline-offset: 3px; }
+.hud-item[data-explain] { text-decoration: none; }
+
 .result-panel .btn { margin-top: 0.4rem; }
 
 @media (min-width: 700px) {

@@ -39,21 +39,24 @@
   const STARTER_SAINT = "St. Jude"; // the patron of lost causes walks with every new pilgrim
 
   // The sin pool
-  const SIN_START_POWER = 13;
+  const SIN_START_POWER = 9;
   const SIN_START_PREVALENCE = 3;
   const SIN_POWER_CAP = 18;
   const SIN_PREVALENCE_CAP = 9;
   const SIN_GROWTH_ON_LOSS = 2; // power gained when the pilgrim falls
   const SIN_SPREAD_ON_LOSS = 2; // prevalence gained when the pilgrim falls
-  const DAMAGE_CAP = 4; // max power broken by one victory
+  const DAMAGE_MIN = 3; // every victory breaks at least this much
+  const DAMAGE_CAP = 8; // max power broken by one victory — margin matters
   const PETER_DAMAGE = 3; // Keys of the Kingdom auto-success breaks this much
+  const ABSORB_POWER = 1; // vanquished sin's malice: power gained by each survivor
+  const ABSORB_SPREAD = 1; // ...and prevalence gained by each survivor
 
   // The turn structure
   const MANIFEST_COUNT = 3; // sins that crowd around the pilgrim each turn
-  const FESTER_INTERVAL = 4; // every Nth trial, sin festers...
-  const FESTER_GROWTH = 1; // ...all standing sins gain this much power
+  const FESTER_INTERVAL = 5; // every Nth trial, sin festers...
+  // ...and each fester is worse than the last: +1, +2, then +3 thereafter
   const SPURNED_SPREAD = 1; // manifested sins left unfaced grow this much bolder (prevalence)
-  const REST_TRIALS = 1; // a saint who intercedes rests for the next trial
+  const REST_TRIALS = 2; // a saint who intercedes rests for the next two trials
   const PLEAD_COST = 3; // grace to re-roll providence after a losing trial
 
   const PROVIDENCE_MIN = 1;
@@ -338,7 +341,7 @@
       let damage = 0;
       if (defense > power) {
         victory = true;
-        damage = clamp(defense - power, 1, DAMAGE_CAP);
+        damage = clamp(defense - power, DAMAGE_MIN, DAMAGE_CAP);
         log.push(
           "✨ The temptation breaks, " + defense + " to " + power +
             " — " + sin.name + "'s power is broken by " + damage + "."
@@ -364,13 +367,13 @@
     /** Tally prizes (computed only — applied at commit). */
     _finish(victory, defense, power, damage, log, providence, peterAuto) {
       const saint = this.saint;
-      let grace = victory ? this.sin.gracePrize : 2;
+      let grace = victory ? this.sin.gracePrize : 1;
       let resolveRestored = 0;
 
       if (victory) {
         log.push("☩ You are strengthened: +" + grace + " Grace.");
       } else {
-        log.push("☩ Even in defeat there is a lesson: +2 Grace.");
+        log.push("☩ Even in defeat there is a lesson: +1 Grace.");
       }
 
       if (saint && saint.abilityKey === "francis") {
@@ -440,8 +443,9 @@
     let maxDamage = 0;
     if (winChance > 0) {
       const lowRoll = Math.max(PROVIDENCE_MIN, needed);
-      minDamage = clamp(base + lowRoll - power, ties && base + lowRoll === power ? 1 : 1, DAMAGE_CAP);
-      maxDamage = clamp(base + PROVIDENCE_MAX - power, 1, DAMAGE_CAP);
+      // a tie won by Catherine breaks only 1; any true victory breaks at least DAMAGE_MIN
+      minDamage = ties && base + lowRoll === power ? 1 : clamp(base + lowRoll - power, DAMAGE_MIN, DAMAGE_CAP);
+      maxDamage = clamp(base + PROVIDENCE_MAX - power, DAMAGE_MIN, DAMAGE_CAP);
     }
 
     return {
@@ -474,6 +478,7 @@
       this.fatigue = {}; // saint name → trial number when available again
       this.theresaSpent = false;
       this.peterAutoLastTrial = false;
+      this.festerCount = 0; // how many times sin has festered (each worse than the last)
       this.pending = null; // { sinName, saintName, pleaded, result }
       this.currentSins = this._drawSins();
       this.outcome = null; // null while walking | "triumphant" | "fallen"
@@ -624,6 +629,18 @@
         entry.prevalence = Math.max(1, entry.prevalence - 1);
         if (entry.power === 0) {
           result.log.push("🌟 " + entry.name + " is VANQUISHED — its power is utterly broken!");
+          // Sin does not die quietly: its malice flees into the survivors.
+          const survivors = this.activeSins();
+          if (survivors.length > 0) {
+            for (const s of survivors) {
+              s.power = Math.min(SIN_POWER_CAP, s.power + ABSORB_POWER);
+              s.prevalence = Math.min(SIN_PREVALENCE_CAP, s.prevalence + ABSORB_SPREAD);
+            }
+            result.log.push(
+              "🩸 Its malice flees into the sins that remain: every standing sin grows +" +
+                ABSORB_POWER + " power and +" + ABSORB_SPREAD + " prevalence."
+            );
+          }
         } else {
           result.log.push(
             "📉 " + entry.name + " retreats: power " + entry.power + ", prevalence " + entry.prevalence + "."
@@ -658,12 +675,18 @@
         }
       }
 
-      // Festering: every FESTER_INTERVAL trials, standing sins grow
+      // Festering: every FESTER_INTERVAL trials, standing sins grow —
+      // and each fester is worse than the last (+1, +2, +3, …).
       if (this.trialNumber % FESTER_INTERVAL === 0 && this.activeSins().length > 0) {
+        this.festerCount += 1;
+        const growth = Math.min(3, this.festerCount);
         for (const e of this.activeSins()) {
-          e.power = Math.min(SIN_POWER_CAP, e.power + FESTER_GROWTH);
+          e.power = Math.min(SIN_POWER_CAP, e.power + growth);
         }
-        result.log.push("🕯️ The road wears on — sin festers: every standing sin grows +" + FESTER_GROWTH + " power.");
+        result.log.push(
+          "🕯️ The road wears on — sin festers: every standing sin grows +" + growth +
+            " power. Each fester is worse than the last."
+        );
       }
 
       // End states, then the road continues
@@ -693,6 +716,7 @@
         fatigue: Object.assign({}, this.fatigue),
         theresaSpent: this.theresaSpent,
         peterAutoLastTrial: this.peterAutoLastTrial,
+        festerCount: this.festerCount,
         pending: this.pending,
         outcome: this.outcome,
       };
@@ -709,6 +733,7 @@
       pg.fatigue = Object.assign({}, json.fatigue || {});
       pg.theresaSpent = !!json.theresaSpent;
       pg.peterAutoLastTrial = !!json.peterAutoLastTrial;
+      pg.festerCount = json.festerCount || 0;
       pg.pending = json.pending || null;
       pg.outcome = json.outcome || null;
       return pg;
@@ -740,6 +765,7 @@
     SIN_START_PREVALENCE,
     SIN_POWER_CAP,
     SIN_PREVALENCE_CAP,
+    DAMAGE_MIN,
     DAMAGE_CAP,
     MANIFEST_COUNT,
     FESTER_INTERVAL,

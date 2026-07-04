@@ -27,32 +27,32 @@ Each sin assails its traditional contrary virtue:
 | 🕸️ Sloth | Diligence |
 
 ### The Sin Pool — how you win
-All seven sins begin the pilgrimage with **Power 13** and **Prevalence 3**:
+All seven sins begin the pilgrimage with **Power 9** and **Prevalence 3**:
 
 - **Power** is how strong a sin is — your trial is fought against its current power.
 - **Prevalence** is how likely it is to be called — the sins that manifest each turn are a weighted draw from the pool.
 
 Every trial moves the pool:
 
-- **Win** → the sin's power breaks by your **margin of victory** (1–4; decisive wins break more) and its prevalence falls by 1. At **power 0 the sin is vanquished** and never manifests again.
+- **Win** → the sin's power breaks by your **margin of victory** (at least 3, up to 8 — decisive wins break far more) and its prevalence falls by 1. At **power 0 the sin is vanquished** — but sin does not die quietly: **its malice flees into the survivors, and every standing sin gains +1 power and +1 prevalence**. The last sins standing are the strongest.
 - **Lose** → the sin grows: **+2 power** (cap 18) and **+2 prevalence** (cap 9) — stronger *and* more often in your path — and you lose 1 of your **3 Resolve (❤)**.
 
 **Vanquish all seven sins to triumph. Lose all three Resolve and the pilgrimage falls.** Severity is a live label for a sin's current power — Venial (≤8), Grave (9–12), Mortal (13+) — and sets the prizes for beating it.
 
 ### Choose your battle
-Each turn, **three sins manifest** — you decide which to face. But temptation resisted is not temptation defeated: the two sins you spurn each grow **+1 prevalence**, crowding your future choices. And **sin festers**: every 4th trial, every standing sin gains **+1 power**. Turtling has a price; the war rewards focus.
+Each turn, **three sins manifest** — you decide which to face. But temptation resisted is not temptation defeated: the two sins you spurn each grow **+1 prevalence**, crowding your future choices. And **sin festers**: every 5th trial, every standing sin grows — **+1 power the first time, +2 the second, +3 every time after**. The war is a race; turtling loses it.
 
 ### The saints tire
-A saint who intercedes **rests for the next trial** — you cannot lean on one champion. Depth of roster is survival. Two abilities are similarly bounded: **St. Theresa restores Resolve once per pilgrimage**, and **St. Peter's Keys cannot turn twice in a row**.
+A saint who intercedes **rests for the next two trials** — you cannot lean on one champion. Depth of roster is survival. Two abilities are similarly bounded: **St. Theresa restores Resolve once per pilgrimage**, and **St. Peter's Keys cannot turn twice in a row**.
 
 ### Know your odds — and plead when they fail
-Every invocation chip shows its **live odds and damage range** ("75% · dmg 1–4") before you commit — the game hides nothing but the providence roll (1–4). When a trial is lost, you may **Plead for Providence: ☩3 Grace to face the same sin again with a fresh roll**, once per trial. Keeping a Grace reserve for pleading versus spending it on virtues is one of the run's core tensions.
+Every invocation chip shows its **live odds and damage range** ("75% · dmg 3–6") before you commit — the game hides nothing but the providence roll (1–4). When a trial is lost, you may **Plead for Providence: ☩3 Grace to face the same sin again with a fresh roll**, once per trial. Keeping a Grace reserve for pleading versus spending it on virtues is one of the run's core tensions.
 
 ### Everything starts over
 A pilgrimage is one complete game. Virtues, Grace, Dulia, and unlocked saints all reset when a new pilgrimage begins — your build lives and dies with the run. Returning to the main menu ends the run. Only your **records** (pilgrimages, triumphs, best progress) persist. The **📜 Saints** library and **⛪ Chapel** are reached from inside the pilgrimage.
 
 ### Dulia — the currency of devotion
-You start each pilgrimage with **✠10** and earn more by winning trials: **+3/+4/+5** by the sin's severity band. It has two uses:
+You start each pilgrimage with **✠10** and earn more by winning trials: **+2/+3/+4** by the sin's severity band. It has two uses:
 
 | Rarity | Unlock (per run) | Invoke (per trial) | Virtue bonus |
 |---|---|---|---|
@@ -68,8 +68,10 @@ Your **defense** = your tested virtue + the saint's matching virtue (with rarity
 ### Grace — divine assistance
 Grace elevates, heals, and strengthens your natural abilities — for this pilgrimage.
 
-- **Victory:** +3/+4/+5 Grace by severity band · **Defeat:** +2 Grace (even failure teaches)
+- **Victory:** +3/+4/+5 Grace by severity band · **Defeat:** +1 Grace (even failure teaches)
 - Spend Grace in the **⛪ Chapel** to raise a virtue (raising a virtue costs its current value, max 10) — or bank it to plead for Providence
+
+**Every stat explains itself** — hover over (or tap) any number in the HUD, the sin pool, or a sin's card, and open the **❓ glossary** in the run's top bar for the full reference.
 
 An in-progress pilgrimage is saved automatically in your browser, so you can close the tab and pick the run back up.
 
