@@ -91,11 +91,12 @@ const SIN_DATA = [
   },
 ];
 
-/* grace/dulia: the prizes for overcoming a sin of this severity. */
+/* Severity is a live label for a sin's CURRENT power in the pool.
+   grace/dulia: the prizes for winning a trial in that band. */
 const SEVERITY_TIERS = [
-  { name: "Venial", basePower: 10, grace: 3, dulia: 3 },
-  { name: "Grave", basePower: 14, grace: 4, dulia: 4 },
-  { name: "Mortal", basePower: 18, grace: 5, dulia: 5 },
+  { name: "Venial", maxPower: 8, grace: 3, dulia: 3 },
+  { name: "Grave", maxPower: 12, grace: 4, dulia: 4 },
+  { name: "Mortal", maxPower: Infinity, grace: 5, dulia: 5 },
 ];
 
 /* ---------------- The Ten Saints ---------------------------
@@ -120,7 +121,7 @@ const SAINT_DATA = [
     rarity: "Canonized",
     emblem: "⚔️",
     baseStats: { Humility: 10, Generosity: 5, Chastity: 8, Kindness: 5, Temperance: 5, Patience: 6, Diligence: 10 },
-    ability: "Sword of Justice — +3 to the pilgrim's defense against Grave and Mortal sins.",
+    ability: "Sword of Justice — +3 to the pilgrim's defense against Grave and Mortal sins (power 9+).",
     abilityKey: "michael",
     patronSin: "Pride",
     patronage: "Protection against evil — his very name asks, \"Who is like God?\"",
@@ -186,7 +187,7 @@ const SAINT_DATA = [
     rarity: "Canonized",
     emblem: "🗝️",
     baseStats: { Humility: 10, Generosity: 6, Chastity: 5, Kindness: 6, Temperance: 8, Patience: 5, Diligence: 8 },
-    ability: "Keys of the Kingdom — Venial sins are banished outright, without a contest.",
+    ability: "Keys of the Kingdom — trials against Venial sins (power 8 or less) succeed outright.",
     abilityKey: "peter",
     patronSin: "Gluttony",
     patronage: "Popes, fishermen, and fresh starts after failure",

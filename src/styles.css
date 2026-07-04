@@ -407,7 +407,59 @@ body {
 .sin-stats { font-size: 0.9rem; color: var(--text-dim); }
 .sin-stats strong { color: var(--text); }
 
-.sin-stats.dominion { color: #fca5a5; margin-top: 0.3rem; font-size: 0.82rem; }
+/* ---------------- the sin pool (war map) ---------------- */
+
+.pool-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.pool-panel .picker-title { margin: 0 0 0.6rem; }
+
+.pool-row {
+  display: grid;
+  grid-template-columns: 1.6rem 7.2rem 1fr 1.6rem 2.4rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  font-size: 0.85rem;
+}
+
+.pool-row.current { background: rgba(245, 197, 66, 0.08); border-radius: 8px; }
+
+.pool-row.vanquished { opacity: 0.45; }
+.pool-row.vanquished .pool-name { text-decoration: line-through; }
+
+.pool-emblem { font-size: 1.1rem; }
+
+.pool-name { display: flex; flex-direction: column; line-height: 1.2; }
+.pool-name small { color: var(--text-dim); font-size: 0.7rem; }
+
+.pool-track {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.pool-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.severity-fill-venial { background: #94a3b8; }
+.severity-fill-grave { background: #fb923c; }
+.severity-fill-mortal { background: #ef4444; }
+
+.pool-power { text-align: right; font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; }
+
+.pool-prevalence { text-align: right; color: var(--text-dim); font-size: 0.78rem; white-space: nowrap; }
 
 /* ---------------- locked saints ---------------- */
 

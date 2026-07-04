@@ -1,15 +1,17 @@
 /* ============================================================
    HAGIMON — UI Layer
    Screen routing, rendering, and localStorage persistence.
+   A pilgrimage is one complete game: the pilgrim's build and
+   the sin pool live and die together. Only records persist.
    Depends on data.js (definitions) and game.js (classes).
    ============================================================ */
 
 (function () {
   "use strict";
 
-  const STORAGE_PILGRIM = "hagimon.pilgrim";
-  const STORAGE_PILGRIMAGE = "hagimon.pilgrimage";
-  const LEGACY_KEYS = ["hagimon.collection", "hagimon.deck"]; // pre-redesign saves
+  const STORAGE_RUN = "hagimon.run"; // active pilgrimage: { pilgrim, pilgrimage }
+  const STORAGE_RECORDS = "hagimon.records"; // permanent records
+  const LEGACY_KEYS = ["hagimon.collection", "hagimon.deck", "hagimon.pilgrim", "hagimon.pilgrimage"];
 
   /* ------------------- persistent state -------------------- */
 
@@ -17,21 +19,23 @@
   const saintByName = {};
   for (const s of saints) saintByName[s.name] = s;
 
-  let pilgrim = null;
+  let pilgrim = new Pilgrim(); // fresh template until a run starts
   let pilgrimage = null; // active run, or null
+  let records = { pilgrimages: 0, triumphs: 0, bestVanquished: 0, trialsFaced: 0 };
 
   function loadState() {
     for (const k of LEGACY_KEYS) {
       try { localStorage.removeItem(k); } catch (e) { /* ignore */ }
     }
     try {
-      pilgrim = new Pilgrim(JSON.parse(localStorage.getItem(STORAGE_PILGRIM)) || {});
-    } catch (e) {
-      pilgrim = new Pilgrim();
-    }
+      records = Object.assign(records, JSON.parse(localStorage.getItem(STORAGE_RECORDS)) || {});
+    } catch (e) { /* fresh records */ }
     try {
-      const json = JSON.parse(localStorage.getItem(STORAGE_PILGRIMAGE));
-      if (json && !json.outcome) pilgrimage = Pilgrimage.fromJSON(json, pilgrim);
+      const run = JSON.parse(localStorage.getItem(STORAGE_RUN));
+      if (run && run.pilgrimage && !run.pilgrimage.outcome) {
+        pilgrim = new Pilgrim(run.pilgrim);
+        pilgrimage = Pilgrimage.fromJSON(run.pilgrimage, pilgrim);
+      }
     } catch (e) {
       pilgrimage = null;
     }
@@ -39,11 +43,11 @@
 
   function saveState() {
     try {
-      localStorage.setItem(STORAGE_PILGRIM, JSON.stringify(pilgrim.toJSON()));
+      localStorage.setItem(STORAGE_RECORDS, JSON.stringify(records));
       if (pilgrimage && !pilgrimage.outcome) {
-        localStorage.setItem(STORAGE_PILGRIMAGE, JSON.stringify(pilgrimage.toJSON()));
+        localStorage.setItem(STORAGE_RUN, JSON.stringify({ pilgrim: pilgrim.toJSON(), pilgrimage: pilgrimage.toJSON() }));
       } else {
-        localStorage.removeItem(STORAGE_PILGRIMAGE);
+        localStorage.removeItem(STORAGE_RUN);
       }
     } catch (e) { /* storage unavailable — play on without persistence */ }
   }
@@ -97,6 +101,7 @@
 
   function saintCard(saint) {
     const locked = !pilgrim.isUnlocked(saint.name);
+    const canUnlock = locked && pilgrimage && !pilgrimage.outcome;
     return (
       '<div class="card rarity-border-' + saint.rarity.toLowerCase() + (locked ? " locked" : "") + '">' +
       '<div class="card-head">' +
@@ -113,11 +118,13 @@
       '<p class="card-ability"><strong>Invoked against:</strong> ' + esc(saint.patronSin) +
       " (+" + PATRON_BONUS + " in those trials)</p>" +
       '<p class="card-patronage"><strong>Patron of:</strong> ' + esc(saint.patronage) + "</p>" +
-      (locked
+      (canUnlock
         ? '<button class="btn primary unlock-btn" data-unlock="' + esc(saint.name) + '"' +
           (pilgrim.dulia >= saint.unlockCost ? "" : " disabled") +
           ">🔓 Unlock for ✠" + saint.unlockCost + " (you have ✠" + pilgrim.dulia + ")</button>"
-        : "") +
+        : locked
+          ? '<p class="card-patronage locked-note">Begin a pilgrimage to unlock saints.</p>'
+          : "") +
       "</div>"
     );
   }
@@ -126,29 +133,19 @@
 
   function renderHome() {
     const info = document.getElementById("home-pilgrim-info");
-    const st = pilgrim.stats;
     let html =
-      '<div class="deck-banner">☩ Grace: <strong>' + pilgrim.grace + "</strong>" +
-      ' &nbsp;·&nbsp; ✠ Dulia: <strong>' + pilgrim.dulia + "</strong>" +
-      ' &nbsp;·&nbsp; 😇 Saints: <strong>' + pilgrim.unlockedSaints.length + "/" + saints.length + "</strong>" +
-      ' &nbsp;·&nbsp; 🌟 Completed: <strong>' + st.completed + "</strong></div>";
-    const haunting = SIN_DATA.filter((d) => pilgrim.dominionOf(d.name) > 0);
-    if (haunting.length) {
+      '<div class="deck-banner">🏆 Triumphs: <strong>' + records.triumphs + "</strong>" +
+      ' &nbsp;·&nbsp; ⚜️ Pilgrimages: <strong>' + records.pilgrimages + "</strong>" +
+      ' &nbsp;·&nbsp; 😇 Best: <strong>' + records.bestVanquished + "/7 sins</strong></div>";
+    if (pilgrimage && !pilgrimage.outcome) {
       html +=
-        '<div class="deck-banner incomplete">⛓️ Sins strengthened by your falls: ' +
-        haunting.map((d) => d.emblem + " " + d.name + " +" + pilgrim.dominionOf(d.name)).join(" · ") +
-        "</div>";
-    }
-    if (pilgrimage) {
-      html +=
-        '<div class="deck-banner incomplete">🚶 A pilgrimage is underway — Trial ' +
-        pilgrimage.trialNumber + "/" + TRIALS_PER_PILGRIMAGE +
-        ", ❤ " + pilgrimage.resolve + "</div>";
+        '<div class="deck-banner incomplete">🚶 A pilgrimage is underway — Trial ' + pilgrimage.trialNumber +
+        ", ❤ " + pilgrimage.resolve +
+        ", 😇 " + pilgrimage.vanquishedCount() + "/7 vanquished</div>";
     }
     info.innerHTML = html;
-    document.getElementById("home-pilgrimage-btn").textContent = pilgrimage
-      ? "🚶 Continue Pilgrimage"
-      : "⚜️ Begin Pilgrimage";
+    document.getElementById("home-pilgrimage-btn").textContent =
+      pilgrimage && !pilgrimage.outcome ? "🚶 Continue Pilgrimage" : "⚜️ Begin Pilgrimage";
   }
 
   /* ------------------- saints library ---------------------- */
@@ -158,8 +155,11 @@
   function renderLibrary() {
     const list = document.getElementById("library-list");
     document.getElementById("library-dulia").innerHTML =
-      '<div class="deck-banner">✠ Dulia: <strong>' + pilgrim.dulia +
-      "</strong> — earned by overcoming trials, spent to unlock and invoke saints</div>";
+      pilgrimage && !pilgrimage.outcome
+        ? '<div class="deck-banner">✠ Dulia: <strong>' + pilgrim.dulia +
+          "</strong> — earned by overcoming trials, spent to unlock and invoke saints</div>"
+        : '<div class="deck-banner incomplete">Each pilgrimage begins anew with ' + STARTER_SAINT +
+          " and ✠" + STARTING_DULIA + " — unlock the rest along the way.</div>";
     let html = "";
     for (const saint of saints) {
       const locked = !pilgrim.isUnlocked(saint.name);
@@ -202,8 +202,10 @@
   /* ------------------- chapel (spend Grace) ----------------- */
 
   function renderChapel() {
-    document.getElementById("chapel-grace").innerHTML =
-      '<div class="deck-banner">☩ Grace to spend: <strong>' + pilgrim.grace + "</strong></div>";
+    const active = pilgrimage && !pilgrimage.outcome;
+    document.getElementById("chapel-grace").innerHTML = active
+      ? '<div class="deck-banner">☩ Grace to spend: <strong>' + pilgrim.grace + "</strong></div>"
+      : '<div class="deck-banner incomplete">Grace is gathered and spent within a single pilgrimage. Begin one to grow in virtue.</div>';
 
     const list = document.getElementById("chapel-list");
     let html = "";
@@ -220,7 +222,7 @@
         val * 10 + "%;background:" + VIRTUE_COLORS[v] + '"></span></span></span>' +
         '<span class="copy-count">' + val + "</span>" +
         '<button class="ctrl-btn" data-raise="' + v + '"' +
-        (maxed || pilgrim.grace < cost ? " disabled" : "") + ">+</button>" +
+        (!active || maxed || pilgrim.grace < cost ? " disabled" : "") + ">+</button>" +
         "</div>";
     }
     list.innerHTML = html;
@@ -240,8 +242,10 @@
   let lastResult = null;
 
   function startOrContinuePilgrimage() {
-    if (!pilgrimage) {
+    if (!pilgrimage || pilgrimage.outcome) {
+      pilgrim = new Pilgrim(); // everything starts over
       pilgrimage = new Pilgrimage(pilgrim);
+      records.pilgrimages += 1;
       chosenSaint = undefined;
       lastResult = null;
       saveState();
@@ -252,6 +256,7 @@
   function renderPilgrimage() {
     if (!pilgrimage) { show("home"); return; }
     renderHud();
+    renderPool();
     if (lastResult) {
       renderTrialResult();
     } else {
@@ -262,17 +267,44 @@
   function renderHud() {
     const pg = pilgrimage;
     document.getElementById("pilgrimage-hud").innerHTML =
-      '<span class="hud-item">Trial <strong>' + pg.trialNumber + "/" + TRIALS_PER_PILGRIMAGE + "</strong></span>" +
+      '<span class="hud-item">Trial <strong>' + pg.trialNumber + "</strong></span>" +
       '<span class="hud-item">' + "❤".repeat(pg.resolve) + '<span class="heart-lost">' +
       "♡".repeat(Math.max(0, MAX_RESOLVE - pg.resolve)) + "</span></span>" +
-      '<span class="hud-item">✠ <strong>' + pilgrim.dulia + "</strong> Dulia</span>" +
-      '<span class="hud-item">☩ <strong>' + pilgrim.grace + "</strong> Grace</span>";
+      '<span class="hud-item">😇 <strong>' + pg.vanquishedCount() + "/7</strong></span>" +
+      '<span class="hud-item">✠ <strong>' + pilgrim.dulia + "</strong></span>" +
+      '<span class="hud-item">☩ <strong>' + pilgrim.grace + "</strong></span>";
+  }
+
+  /** The war map: every sin's current Power and Prevalence. */
+  function renderPool() {
+    const pg = pilgrimage;
+    let html = '<div class="pool-panel"><h4 class="picker-title">The Seven Sins — break every power to 0</h4>';
+    for (const entry of pg.pool) {
+      const def = SIN_DATA.find((d) => d.name === entry.name);
+      const vanquished = entry.power <= 0;
+      const isCurrent = !pg.outcome && pg.currentSin && !lastResult && pg.currentSin.name === entry.name;
+      const sev = severityForPower(entry.power).name;
+      html +=
+        '<div class="pool-row' + (vanquished ? " vanquished" : "") + (isCurrent ? " current" : "") + '">' +
+        '<span class="pool-emblem">' + def.emblem + "</span>" +
+        '<span class="pool-name">' + entry.name +
+        "<small>" + (vanquished ? "✨ vanquished" : "vs " + def.virtue + " · " + sev.toLowerCase() + (isCurrent ? " · manifesting now" : "")) + "</small></span>" +
+        '<span class="pool-track"><span class="pool-fill severity-fill-' + sev.toLowerCase() + '" style="width:' +
+        Math.round((entry.power / SIN_POWER_CAP) * 100) + '%"></span></span>' +
+        '<span class="pool-power">' + entry.power + "</span>" +
+        '<span class="pool-prevalence" title="Prevalence — how likely to be called">' +
+        (vanquished ? "—" : "🎲" + entry.prevalence) + "</span>" +
+        "</div>";
+    }
+    html += "</div>";
+    document.getElementById("pilgrimage-pool").innerHTML = html;
   }
 
   function renderTrialSetup() {
     const pg = pilgrimage;
     const sin = pg.currentSin;
     const el = document.getElementById("pilgrimage-body");
+    if (!sin) { el.innerHTML = ""; return; }
 
     let html =
       '<div class="card sin-card severity-border-' + sin.severity.toLowerCase() + '">' +
@@ -285,10 +317,6 @@
       '<div class="sin-stats">Power <strong>' + sin.power + "</strong>" +
       " · assails your <strong style=\"color:" + VIRTUE_COLORS[sin.virtue] + '">' + sin.virtue +
       "</strong> (yours: " + pilgrim.virtues[sin.virtue] + ")</div>" +
-      (sin.dominion > 0
-        ? '<div class="sin-stats dominion">⛓️ Dominion +' + sin.dominion +
-          " — this sin has grown stronger from your falls</div>"
-        : "") +
       "</div>";
 
     html += '<h4 class="picker-title">Whom will you invoke? <small>(✠ ' + pilgrim.dulia + " available)</small></h4>";
@@ -339,6 +367,12 @@
       if (res.error) { toast(res.error); return; }
       lastResult = res;
       chosenSaint = undefined;
+      if (res.outcome) {
+        // run over — update permanent records
+        records.trialsFaced += pilgrimage.trialNumber;
+        records.bestVanquished = Math.max(records.bestVanquished, pilgrimage.vanquishedCount());
+        if (res.outcome === "triumphant") records.triumphs += 1;
+      }
       saveState();
       renderPilgrimage();
     });
@@ -349,8 +383,12 @@
     const res = lastResult;
 
     let verdict;
-    if (res.victory) {
-      verdict = '<h3 class="verdict win">✨ The sin is banished!</h3>';
+    if (res.outcome === "triumphant") {
+      verdict = '<h3 class="verdict win">🎺 TRIUMPH — all seven sins vanquished!</h3>';
+    } else if (res.outcome === "fallen") {
+      verdict = '<h3 class="verdict lose">🌑 The pilgrimage has fallen</h3>';
+    } else if (res.victory) {
+      verdict = '<h3 class="verdict win">✨ The trial is won!</h3>';
     } else {
       verdict = '<h3 class="verdict lose">💔 The trial is lost</h3>';
     }
@@ -358,15 +396,15 @@
     for (const line of res.log) html += "<li>" + esc(line) + "</li>";
     html += "</ul>";
 
-    if (res.outcome === "completed") {
+    if (res.outcome === "triumphant") {
       html +=
-        '<p class="grace-summary">🌟 Pilgrimage complete! All seven sins faced. Total Grace: ' +
-        pilgrim.grace + "</p>" +
-        '<button class="btn primary" id="pilgrimage-done">⛪ Return in Triumph</button>';
+        '<p class="grace-summary">🌟 Every power broken in ' + pilgrimage.trialNumber +
+        " trials. Triumphs: " + records.triumphs + "</p>" +
+        '<button class="btn primary" id="pilgrimage-done">⛪ Return in Glory</button>';
     } else if (res.outcome === "fallen") {
       html +=
-        '<p class="grace-summary">🌑 The pilgrimage ends, but nothing is wasted — Grace: ' +
-        pilgrim.grace + ". Visit the Chapel to grow stronger.</p>" +
+        '<p class="grace-summary">😇 ' + pilgrimage.vanquishedCount() +
+        "/7 sins vanquished this pilgrimage. The next begins anew — wiser.</p>" +
         '<button class="btn primary" id="pilgrimage-done">⛪ Return Home</button>';
     } else {
       html += '<button class="btn primary" id="next-trial">🚶 Continue the Road →</button>';
@@ -382,6 +420,7 @@
     const done = document.getElementById("pilgrimage-done");
     if (done) done.addEventListener("click", function () {
       pilgrimage = null;
+      pilgrim = new Pilgrim();
       lastResult = null;
       saveState();
       show("home");
