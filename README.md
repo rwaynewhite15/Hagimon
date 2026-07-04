@@ -1,8 +1,8 @@
 # ✨ HAGIMON ✨
 
-**Invoke the Saints. Battle for Grace.**
+**Invoke the Saints. Conquer the Seven Sins.**
 
-HAGIMON is a Saint-themed trading card game that runs entirely in your browser — no build step, no server, no dependencies. Collect the saints, build a 30-card deck, and battle to earn Grace and level up.
+HAGIMON is a Saint-themed game of virtue and intercession that runs entirely in your browser — no build step, no server, no dependencies. You are a pilgrim beset by the seven deadly sins. Invoke the saints to intercede for you, earn Grace, and perfect your virtues.
 
 **🎮 Play it live:** https://rwaynewhite15.github.io/Hagimon/
 
@@ -10,49 +10,66 @@ HAGIMON is a Saint-themed trading card game that runs entirely in your browser �
 
 ## How to Play
 
-### 1. The Saints
-Ten saints are available, each defined by the **seven virtues** — Faith, Hope, Charity, Justice, Prudence, Temperance, and Fortitude (rated 1–10) — plus a rarity, a special ability, and a patronage.
+### You Are the Pilgrim
+You have the **seven capital virtues** — Humility, Generosity, Chastity, Kindness, Temperance, Patience, and Diligence — each starting at a humble **3**. The saints don't battle each other; they assist *you* against the circumstances of sin.
 
-Rarity grants a bonus to every virtue at battle time:
+### The Seven Deadly Sins
+Each sin assails its traditional contrary virtue:
 
-| Rarity | Virtue bonus |
+| Sin | Assails your… |
 |---|---|
-| Common | +0 |
-| Blessed | +1 |
-| Canonized | +2 |
+| 👑 Pride | Humility |
+| 🪙 Greed | Generosity |
+| 🥀 Lust | Chastity |
+| 🐍 Envy | Kindness |
+| 🍷 Gluttony | Temperance |
+| 🌋 Wrath | Patience |
+| 🕸️ Sloth | Diligence |
 
-### 2. Build a Deck
-Open **📿 Build Deck** and assemble exactly **30 cards**. You may include each saint up to **3 times** (a card plus 2 duplicates). Use **✨ Fill Deck** to top up with random picks. Your deck is saved to your browser's localStorage and survives page reloads.
+### The Pilgrimage
+A pilgrimage is **7 trials** — every deadly sin exactly once, in random order, escalating in severity: trials 1–3 are **Venial** (power 13–16), 4–5 are **Grave** (17–20), 6–7 are **Mortal** (21–24). You carry **3 Resolve (❤)**; losing a trial costs one. At zero, the pilgrimage ends — but Grace earned is never lost.
 
-### 3. Battle
-Open **⚡ Battle**, draw a champion from your deck, and pick an opponent from the saint list.
+### Dulia — the currency of intercession
+You begin each pilgrimage with **10 Dulia (✠)** and gain **+2 per victory**. Invoking a saint costs Dulia by rarity:
 
-Battle resolution:
-1. Each saint's **dominant (highest) virtue** — with rarity bonuses — is added to their **level** to form a score.
-2. Special abilities modify the scores (see the table below).
-3. The higher score wins. Ties are peaceful draws — unless St. Catherine is fighting.
+| Rarity | Dulia cost | Virtue bonus |
+|---|---|---|
+| Common | ✠2 | +0 |
+| Blessed | ✠3 | +1 |
+| Canonized | ✠4 | +2 |
 
-### 4. Grace & Leveling
-- **Winner:** +3 Grace  **Loser:** +1 Grace  **Draw:** +2 Grace each
-- At **10 Grace**, a saint levels up (max level 10) and their Grace resets.
-- Higher level = higher battle score. Progress is saved automatically.
+Spend it wisely — run dry and you face sin alone, with nothing but your own virtue.
+
+### Resolving a Trial
+Your **defense** = your tested virtue + the saint's matching virtue (with rarity bonus) + **+2 patron bonus** if the saint is invoked against that very sin + special abilities + a providence roll (1–4). If defense beats the sin's power, the sin is banished.
+
+### Grace — divine assistance
+Grace elevates, heals, and strengthens your natural abilities.
+
+- **Victory:** +3/+4/+5 Grace (Venial/Grave/Mortal) · **Defeat:** +1 Grace
+- **Completing all 7 trials:** +7 bonus Grace
+- Spend Grace in the **⛪ Chapel** to raise a virtue permanently (raising to N costs N Grace, max 10)
+
+Your virtues, Grace, and any pilgrimage-in-progress are saved automatically in your browser.
 
 ---
 
 ## The Saints
 
-| Saint | Rarity | Special Ability | Patron of |
+| Saint | Rarity (✠) | Special Ability | Invoked against |
 |---|---|---|---|
-| 🕊️ St. Francis | Canonized | **Canticle of Creation** — gains +1 bonus Grace after every battle, win or lose | Animals, ecology, and peace |
-| ⚔️ St. Michael | Canonized | **Sword of Justice** — +3 in any battle where Justice is a dominant virtue | Soldiers, police, protection |
-| 🗝️ St. Peter | Canonized | **Keys of the Kingdom** — automatically wins against Common saints | Popes, fishermen, locksmiths |
-| 🌹 St. Theresa | Blessed | **The Little Way** — her mercy heals: the opponent receives +1 Grace | Missionaries, florists, the sick |
-| 🚩 St. Joan of Arc | Blessed | **Voices of Victory** — if losing, re-rolls with a surge of +1 to +3 | France, soldiers, prisoners |
-| 📖 St. Augustine | Blessed | **Restless Heart** — +2 when facing a higher-level opponent | Theologians, converts, printers |
-| ☸️ St. Catherine | Blessed | **The Unbroken Wheel** — wins any tied battle | Philosophers, students, librarians |
-| 🕯️ St. Jude | Common | **Patron of Lost Causes** — +2 when trailing by 3 or more | Hopeless causes |
-| 🎵 St. Cecilia | Common | **Song of Heaven** — lowers the opponent's dominant virtue by 2 | Musicians and composers |
-| 🛡️ St. Demetrius | Common | **Warrior's Stand** — +2 Fortitude against Canonized saints | Soldiers, Thessaloniki |
+| 🕊️ St. Francis | Canonized ✠4 | **Canticle of Creation** — +1 bonus Grace after every trial, won or lost | Greed |
+| ⚔️ St. Michael | Canonized ✠4 | **Sword of Justice** — +3 against Grave and Mortal sins | Pride |
+| 🗝️ St. Peter | Canonized ✠4 | **Keys of the Kingdom** — banishes Venial sins outright | Gluttony |
+| 🌹 St. Theresa | Blessed ✠3 | **The Little Way** — a victory with her restores 1 Resolve | Wrath |
+| 🚩 St. Joan of Arc | Blessed ✠3 | **Voices of Victory** — if the trial is being lost, +1 to +3 surge | Sloth |
+| 📖 St. Augustine | Blessed ✠3 | **Restless Heart** — +2 when your tested virtue is 4 or less | Lust |
+| ☸️ St. Catherine | Blessed ✠3 | **The Unbroken Wheel** — an exactly tied trial becomes a victory | Envy |
+| 🕯️ St. Jude | Common ✠2 | **Patron of Lost Causes** — +2 when trailing the sin by 3 or more | Sloth |
+| 🎵 St. Cecilia | Common ✠2 | **Song of Heaven** — lowers the sin's power by 2 | Gluttony |
+| 🛡️ St. Demetrius | Common ✠2 | **Warrior's Stand** — a soldier's endurance: +2 when the trial tests Patience | Wrath |
+
+**Strategy tips:** match the saint's strong virtue to the sin's tested virtue; save your Canonized invocations for Mortal trials; Peter trivializes one Venial trial; Augustine shines early while your virtues are weak; and when Dulia runs low, a Common saint with the right virtue beats an expensive mismatch.
 
 ---
 
@@ -84,12 +101,12 @@ hagimon/
 ├── README.md         # You are here
 ├── .gitignore
 └── src/
-    ├── data.js       # The 10 saint definitions (stats, abilities, patronages)
-    ├── game.js       # Core game logic: Saint, Deck, Battle classes
+    ├── data.js       # 10 saints + 7 sins (stats, abilities, patron matchups)
+    ├── game.js       # Core logic: Saint, Sin, Pilgrim, Trial, Pilgrimage
     ├── app.js        # UI layer: screens, rendering, localStorage persistence
     └── styles.css    # Mobile-first styling
 ```
 
 ---
 
-*Made with reverence for the tradition of the saints — and a bit of fun.* ☩
+*Made with reverence for the tradition of the saints — dulia is the veneration due to them, and grace is the help that perfects nature.* ☩

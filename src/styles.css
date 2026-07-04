@@ -281,38 +281,7 @@ body {
 
 .library-entry .card { cursor: pointer; margin-bottom: 0; }
 
-/* ---------------- deck builder ---------------- */
-
-.deck-name-label { display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.25rem; }
-
-.deck-name-input {
-  width: 100%;
-  padding: 0.65rem 0.9rem;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--panel);
-  color: var(--text);
-  font-family: var(--serif);
-  font-size: 1rem;
-  margin-bottom: 0.8rem;
-}
-
-.progress-label { font-size: 0.85rem; color: var(--gold); margin-bottom: 0.3rem; }
-
-.progress-track {
-  height: 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  overflow: hidden;
-  margin-bottom: 0.8rem;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--gold));
-  border-radius: 999px;
-  transition: width 0.3s ease;
-}
+/* ---------------- stat rows (chapel) ---------------- */
 
 .builder-list { display: grid; gap: 0.5rem; margin-bottom: 1rem; }
 
@@ -344,11 +313,7 @@ body {
 
 .copy-count { min-width: 1rem; text-align: center; font-weight: 700; color: var(--gold); }
 
-.builder-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
-
-.builder-actions .btn { flex: 1; min-width: 8rem; }
-
-/* ---------------- battle ---------------- */
+/* ---------------- saint picker / results ---------------- */
 
 .opponent-picker {
   display: flex;
@@ -372,27 +337,6 @@ body {
   background: linear-gradient(135deg, var(--accent), var(--accent-deep));
   border-color: var(--accent);
 }
-
-.battle-sides { display: grid; gap: 0.5rem; }
-
-.battle-side h4 {
-  font-family: var(--serif);
-  color: var(--text-dim);
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 0.4rem;
-}
-
-.battle-vs {
-  text-align: center;
-  font-family: var(--serif);
-  font-size: 1.3rem;
-  color: var(--gold);
-  padding: 0.2rem 0;
-}
-
-.muted { color: var(--text-dim); font-size: 0.9rem; }
 
 .result-panel {
   background: var(--panel);
@@ -418,6 +362,74 @@ body {
 }
 
 .grace-summary { color: var(--gold); font-size: 0.9rem; margin-bottom: 0.9rem; }
+
+/* ---------------- pilgrimage ---------------- */
+
+.hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.6rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.hud-item strong { color: var(--gold); }
+
+.heart-lost { opacity: 0.35; }
+
+.sin-card { border-width: 2px; }
+
+.severity {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.severity-venial { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; border: 1px solid #94a3b8; }
+.severity-grave { background: rgba(251, 146, 60, 0.18); color: #fed7aa; border: 1px solid #fb923c; }
+.severity-mortal { background: rgba(239, 68, 68, 0.2); color: #fecaca; border: 1px solid #ef4444; }
+
+.severity-border-venial { border-color: rgba(148, 163, 184, 0.5); }
+.severity-border-grave { border-color: rgba(251, 146, 60, 0.55); }
+.severity-border-mortal {
+  border-color: rgba(239, 68, 68, 0.65);
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.15);
+}
+
+.sin-stats { font-size: 0.9rem; color: var(--text-dim); }
+.sin-stats strong { color: var(--text); }
+
+.picker-title {
+  font-family: var(--serif);
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  margin: 1rem 0 0.5rem;
+}
+
+.picker-title small { font-weight: 400; }
+
+.opponent-chip small { display: block; font-size: 0.68rem; opacity: 0.75; }
+
+.opponent-chip.alone { border-style: dashed; }
+
+/* ---------------- chapel ---------------- */
+
+.virtue-dot {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.chapel-track { flex: 1.2; min-width: 4.5rem; }
 
 /* ---------------- toast ---------------- */
 
@@ -450,12 +462,4 @@ body {
   .home-nav { flex-direction: row; justify-content: center; max-width: none; }
 
   .library-list { grid-template-columns: 1fr 1fr; align-items: start; }
-
-  .battle-sides {
-    grid-template-columns: 1fr auto 1fr;
-    align-items: start;
-    gap: 1rem;
-  }
-
-  .battle-vs { align-self: center; }
 }
