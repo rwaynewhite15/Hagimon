@@ -474,6 +474,11 @@ body {
 
 .opponent-chip.resting { opacity: 0.5; border-style: dashed; }
 
+.opponent-chip.alms { border-color: var(--gold); color: #fde68a; }
+.opponent-chip.alms:disabled { opacity: 0.4; }
+
+#chapel-alms { display: block; margin: 0 auto 0.9rem; }
+
 /* ---------------- choosing your battle ---------------- */
 
 .sin-choices {

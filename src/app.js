@@ -103,6 +103,7 @@
     severity: "Severity — a label of the sin's current power: Venial ≤8, Grave 9–12, Mortal 13+. Graver sins pay more Grace and Dulia when beaten.",
     odds: "Each choice shows your chance to win (the providence roll of 1–4 is the only unknown) and the power you would break — your margin of victory, at least " + DAMAGE_MIN + ", at most " + DAMAGE_CAP + ". ⚡ means this saint can surge when losing.",
     virtue: "Virtues (1–10) — each sin assails its contrary virtue. Your own virtue is the foundation of every defense; saints add theirs on top.",
+    alms: "Almsgiving 🕊️ — give " + ALMS_GRACE + " Grace away to gain ✠1 Dulia. Costly, but it is the way back when your purse runs empty.",
   };
 
   function virtueBars(stats, dominantName) {
@@ -211,7 +212,18 @@
   function renderChapel() {
     document.getElementById("chapel-grace").innerHTML =
       '<div class="deck-banner">☩ Grace to spend: <strong>' + pilgrim.grace +
-      "</strong> — pleading for Providence costs " + PLEAD_COST + "</div>";
+      "</strong> · ✠ Dulia: <strong>" + pilgrim.dulia +
+      "</strong> — pleading for Providence costs ☩" + PLEAD_COST + "</div>" +
+      '<button class="btn small" id="chapel-alms" title="' + EXPLAIN.alms + '"' +
+      (pilgrim.grace >= ALMS_GRACE ? "" : " disabled") +
+      ">🕊️ Offer alms: give ☩" + ALMS_GRACE + " Grace → gain ✠1 Dulia</button>";
+    document.getElementById("chapel-alms").addEventListener("click", function () {
+      const res = pilgrim.offerAlms();
+      if (!res.ok) { toast(res.error); return; }
+      toast("🕊️ Alms given: ☩" + ALMS_GRACE + " → ✠1. Devotion deepens.");
+      saveState();
+      renderChapel();
+    });
 
     const list = document.getElementById("chapel-list");
     let html = "";
@@ -434,6 +446,10 @@
       '<button class="opponent-chip alone' + (chosenSaint === null ? " selected" : "") + '" data-alone="1"' +
       ' title="' + previewTitle(sin, null) + '">' +
       "🚶 Face it alone <small>✠0 · " + previewText(sin, null) + "</small></button>";
+    html +=
+      '<button class="opponent-chip alms" data-alms="1" title="' + EXPLAIN.alms + '"' +
+      (pilgrim.grace >= ALMS_GRACE ? "" : " disabled") + ">" +
+      "🕊️ Offer alms <small>☩" + ALMS_GRACE + " → ✠1 (have ☩" + pilgrim.grace + ")</small></button>";
     html += "</div>";
 
     html += '<button class="btn battle wide" id="face-trial"' +
@@ -456,6 +472,14 @@
     const aloneBtn = el.querySelector("[data-alone]");
     if (aloneBtn) aloneBtn.addEventListener("click", function () {
       chosenSaint = null;
+      renderPilgrimage();
+    });
+    const almsBtn = el.querySelector("[data-alms]");
+    if (almsBtn) almsBtn.addEventListener("click", function () {
+      const res = pilgrim.offerAlms();
+      if (!res.ok) { toast(res.error); return; }
+      toast("🕊️ Alms given: ☩" + ALMS_GRACE + " → ✠1. Devotion deepens.");
+      saveState();
       renderPilgrimage();
     });
     document.getElementById("face-trial").addEventListener("click", function () {
@@ -588,7 +612,7 @@
         panel.innerHTML =
           '<h4 class="picker-title">📖 How to read the stats <button class="btn back" id="help-close">✕ close</button></h4>' +
           '<ul class="help-list">' +
-          ["trial", "resolve", "vanquished", "dulia", "grace", "fester", "power", "prevalence", "severity", "odds", "virtue"]
+          ["trial", "resolve", "vanquished", "dulia", "grace", "fester", "power", "prevalence", "severity", "odds", "virtue", "alms"]
             .map((k) => "<li>" + EXPLAIN[k] + "</li>")
             .join("") +
           "</ul>";
