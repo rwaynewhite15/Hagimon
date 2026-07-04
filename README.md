@@ -62,6 +62,8 @@ You start each pilgrimage with **✠10** and earn more by winning trials: **+2/+
 
 You begin with only **St. Jude** — the patron of lost causes — at your side. The other nine saints are **locked** until you unlock them in the Saints library, and one wallet pays for both unlocking and invoking. Run dry and you face sin alone, with nothing but your own virtue.
 
+**Almsgiving 🕊️** — if your purse runs empty, give **☩2 Grace away to gain ✠1 Dulia** (from the trial screen or the Chapel). Costly, but even defeats pay ☩1 Grace, so no losing streak can lock you out of intercession for good.
+
 ### Resolving a Trial
 Your **defense** = your tested virtue + the saint's matching virtue (with rarity bonus) + **+2 patron bonus** if the saint is invoked against that very sin + special abilities + a providence roll (1–4). Beat the sin's current power and its power breaks by the margin.
 

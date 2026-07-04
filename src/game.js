@@ -58,6 +58,7 @@
   const SPURNED_SPREAD = 1; // manifested sins left unfaced grow this much bolder (prevalence)
   const REST_TRIALS = 2; // a saint who intercedes rests for the next two trials
   const PLEAD_COST = 3; // grace to re-roll providence after a losing trial
+  const ALMS_GRACE = 2; // grace given as alms deepens devotion: +1 Dulia
 
   const PROVIDENCE_MIN = 1;
   const PROVIDENCE_MAX = 4;
@@ -191,6 +192,19 @@
     addDulia(points) {
       this.dulia += Math.max(0, points);
       return this.dulia;
+    }
+
+    /**
+     * Almsgiving: give Grace away to deepen devotion — trade
+     * ALMS_GRACE Grace for 1 Dulia. The escape from an empty purse.
+     */
+    offerAlms() {
+      if (this.grace < ALMS_GRACE) {
+        return { ok: false, error: "Not enough Grace to offer alms (need " + ALMS_GRACE + ", have " + this.grace + ")." };
+      }
+      this.grace -= ALMS_GRACE;
+      this.dulia += 1;
+      return { ok: true, grace: this.grace, dulia: this.dulia };
     }
 
     /** Grace cost to raise a virtue by one point: its current value. */
@@ -771,6 +785,7 @@
     FESTER_INTERVAL,
     REST_TRIALS,
     PLEAD_COST,
+    ALMS_GRACE,
     PATRON_BONUS,
   };
 
