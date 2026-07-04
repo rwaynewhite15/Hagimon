@@ -32,7 +32,8 @@ const VIRTUE_COLORS = {
 };
 
 const RARITY_BONUS = { Common: 0, Blessed: 1, Canonized: 2 };
-const RARITY_DULIA = { Common: 2, Blessed: 3, Canonized: 4 };
+const RARITY_DULIA = { Common: 1, Blessed: 2, Canonized: 3 }; // cost to invoke
+const RARITY_UNLOCK = { Common: 6, Blessed: 12, Canonized: 20 }; // cost to unlock
 
 const RARITY_COLORS = {
   Common: "#94a3b8",
@@ -90,10 +91,11 @@ const SIN_DATA = [
   },
 ];
 
+/* grace/dulia: the prizes for overcoming a sin of this severity. */
 const SEVERITY_TIERS = [
-  { name: "Venial", basePower: 12, grace: 3 },
-  { name: "Grave", basePower: 16, grace: 4 },
-  { name: "Mortal", basePower: 20, grace: 5 },
+  { name: "Venial", basePower: 10, grace: 3, dulia: 3 },
+  { name: "Grave", basePower: 14, grace: 4, dulia: 4 },
+  { name: "Mortal", basePower: 18, grace: 5, dulia: 5 },
 ];
 
 /* ---------------- The Ten Saints ---------------------------
@@ -223,6 +225,7 @@ const HAGIMON_DATA = {
   VIRTUE_COLORS,
   RARITY_BONUS,
   RARITY_DULIA,
+  RARITY_UNLOCK,
   RARITY_COLORS,
 };
 

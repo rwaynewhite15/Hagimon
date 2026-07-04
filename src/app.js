@@ -96,20 +96,28 @@
   }
 
   function saintCard(saint) {
+    const locked = !pilgrim.isUnlocked(saint.name);
     return (
-      '<div class="card rarity-border-' + saint.rarity.toLowerCase() + '">' +
+      '<div class="card rarity-border-' + saint.rarity.toLowerCase() + (locked ? " locked" : "") + '">' +
       '<div class="card-head">' +
       '<span class="card-emblem">' + saint.emblem + "</span>" +
-      '<div class="card-id"><h3>' + esc(saint.name) + "</h3>" +
+      '<div class="card-id"><h3>' + (locked ? "🔒 " : "") + esc(saint.name) + "</h3>" +
       '<p class="card-title">' + esc(saint.title) + "</p></div>" +
       rarityBadge(saint.rarity) +
       "</div>" +
-      '<div class="card-meta">✠ Dulia cost: ' + saint.duliaCost + "</div>" +
+      '<div class="card-meta">✠ Invoke: ' + saint.duliaCost +
+      (locked ? ' · <span class="locked-note">Locked — unlock for ✠' + saint.unlockCost + "</span>" : "") +
+      "</div>" +
       virtueBars(saint.getStatsWithRarity(), saint.getDominantVirtue().name) +
       '<p class="card-ability"><strong>Special Ability:</strong> ' + esc(saint.specialAbility) + "</p>" +
       '<p class="card-ability"><strong>Invoked against:</strong> ' + esc(saint.patronSin) +
       " (+" + PATRON_BONUS + " in those trials)</p>" +
       '<p class="card-patronage"><strong>Patron of:</strong> ' + esc(saint.patronage) + "</p>" +
+      (locked
+        ? '<button class="btn primary unlock-btn" data-unlock="' + esc(saint.name) + '"' +
+          (pilgrim.dulia >= saint.unlockCost ? "" : " disabled") +
+          ">🔓 Unlock for ✠" + saint.unlockCost + " (you have ✠" + pilgrim.dulia + ")</button>"
+        : "") +
       "</div>"
     );
   }
@@ -121,13 +129,21 @@
     const st = pilgrim.stats;
     let html =
       '<div class="deck-banner">☩ Grace: <strong>' + pilgrim.grace + "</strong>" +
-      ' &nbsp;·&nbsp; 😇 Sins banished: <strong>' + st.sinsBanished + "</strong>" +
-      ' &nbsp;·&nbsp; 🌟 Pilgrimages completed: <strong>' + st.completed + "</strong></div>";
+      ' &nbsp;·&nbsp; ✠ Dulia: <strong>' + pilgrim.dulia + "</strong>" +
+      ' &nbsp;·&nbsp; 😇 Saints: <strong>' + pilgrim.unlockedSaints.length + "/" + saints.length + "</strong>" +
+      ' &nbsp;·&nbsp; 🌟 Completed: <strong>' + st.completed + "</strong></div>";
+    const haunting = SIN_DATA.filter((d) => pilgrim.dominionOf(d.name) > 0);
+    if (haunting.length) {
+      html +=
+        '<div class="deck-banner incomplete">⛓️ Sins strengthened by your falls: ' +
+        haunting.map((d) => d.emblem + " " + d.name + " +" + pilgrim.dominionOf(d.name)).join(" · ") +
+        "</div>";
+    }
     if (pilgrimage) {
       html +=
         '<div class="deck-banner incomplete">🚶 A pilgrimage is underway — Trial ' +
         pilgrimage.trialNumber + "/" + TRIALS_PER_PILGRIMAGE +
-        ", ❤ " + pilgrimage.resolve + ", ✠ " + pilgrimage.dulia + "</div>";
+        ", ❤ " + pilgrimage.resolve + "</div>";
     }
     info.innerHTML = html;
     document.getElementById("home-pilgrimage-btn").textContent = pilgrimage
@@ -141,18 +157,23 @@
 
   function renderLibrary() {
     const list = document.getElementById("library-list");
+    document.getElementById("library-dulia").innerHTML =
+      '<div class="deck-banner">✠ Dulia: <strong>' + pilgrim.dulia +
+      "</strong> — earned by overcoming trials, spent to unlock and invoke saints</div>";
     let html = "";
     for (const saint of saints) {
+      const locked = !pilgrim.isUnlocked(saint.name);
       if (expandedSaint === saint.name) {
         html += '<div class="library-entry" data-saint="' + esc(saint.name) + '">' + saintCard(saint) + "</div>";
       } else {
         const dom = saint.getDominantVirtue();
         html +=
-          '<button class="library-entry compact" data-saint="' + esc(saint.name) + '">' +
+          '<button class="library-entry compact' + (locked ? " locked" : "") + '" data-saint="' + esc(saint.name) + '">' +
           '<span class="card-emblem">' + saint.emblem + "</span>" +
-          '<span class="compact-name">' + esc(saint.name) +
-          "<small>✠ " + saint.duliaCost + " · " + dom.name + " " + dom.value +
-          " · vs " + esc(saint.patronSin) + "</small></span>" +
+          '<span class="compact-name">' + (locked ? "🔒 " : "") + esc(saint.name) +
+          "<small>" +
+          (locked ? "Unlock ✠" + saint.unlockCost + " · " : "✠ " + saint.duliaCost + " · ") +
+          dom.name + " " + dom.value + " · vs " + esc(saint.patronSin) + "</small></span>" +
           rarityBadge(saint.rarity) +
           "</button>";
       }
@@ -162,6 +183,17 @@
       el.addEventListener("click", function () {
         const name = el.getAttribute("data-saint");
         expandedSaint = expandedSaint === name ? null : name;
+        renderLibrary();
+      });
+    });
+    list.querySelectorAll("[data-unlock]").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation(); // don't collapse the card
+        const saint = saintByName[btn.getAttribute("data-unlock")];
+        const res = pilgrim.unlockSaint(saint);
+        if (!res.ok) { toast(res.error); return; }
+        saveState();
+        toast("🔓 " + saint.name + " now walks with you!");
         renderLibrary();
       });
     });
@@ -233,7 +265,7 @@
       '<span class="hud-item">Trial <strong>' + pg.trialNumber + "/" + TRIALS_PER_PILGRIMAGE + "</strong></span>" +
       '<span class="hud-item">' + "❤".repeat(pg.resolve) + '<span class="heart-lost">' +
       "♡".repeat(Math.max(0, MAX_RESOLVE - pg.resolve)) + "</span></span>" +
-      '<span class="hud-item">✠ <strong>' + pg.dulia + "</strong> Dulia</span>" +
+      '<span class="hud-item">✠ <strong>' + pilgrim.dulia + "</strong> Dulia</span>" +
       '<span class="hud-item">☩ <strong>' + pilgrim.grace + "</strong> Grace</span>";
   }
 
@@ -253,19 +285,30 @@
       '<div class="sin-stats">Power <strong>' + sin.power + "</strong>" +
       " · assails your <strong style=\"color:" + VIRTUE_COLORS[sin.virtue] + '">' + sin.virtue +
       "</strong> (yours: " + pilgrim.virtues[sin.virtue] + ")</div>" +
+      (sin.dominion > 0
+        ? '<div class="sin-stats dominion">⛓️ Dominion +' + sin.dominion +
+          " — this sin has grown stronger from your falls</div>"
+        : "") +
       "</div>";
 
-    html += '<h4 class="picker-title">Whom will you invoke? <small>(✠ ' + pg.dulia + " available)</small></h4>";
+    html += '<h4 class="picker-title">Whom will you invoke? <small>(✠ ' + pilgrim.dulia + " available)</small></h4>";
     html += '<div class="opponent-picker">';
     for (const s of saints) {
-      const affordable = pg.canAfford(s);
+      const unlocked = pilgrim.isUnlocked(s.name);
       const sel = chosenSaint === s;
-      html +=
-        '<button class="opponent-chip' + (sel ? " selected" : "") + '" data-invoke="' + esc(s.name) + '"' +
-        (affordable ? "" : " disabled") + ">" +
-        s.emblem + " " + esc(s.name.replace("St. ", "")) +
-        ' <small>✠' + s.duliaCost + " · " + sin.virtue.slice(0, 4) + " " + s.intercessionFor(sin.virtue) +
-        (s.patronSin === sin.name ? " ✨" : "") + "</small></button>";
+      if (unlocked) {
+        html +=
+          '<button class="opponent-chip' + (sel ? " selected" : "") + '" data-invoke="' + esc(s.name) + '"' +
+          (pg.canInvoke(s) ? "" : " disabled") + ">" +
+          s.emblem + " " + esc(s.name.replace("St. ", "")) +
+          ' <small>✠' + s.duliaCost + " · " + sin.virtue.slice(0, 4) + " " + s.intercessionFor(sin.virtue) +
+          (s.patronSin === sin.name ? " ✨" : "") + "</small></button>";
+      } else {
+        html +=
+          '<button class="opponent-chip locked" disabled>' +
+          "🔒 " + esc(s.name.replace("St. ", "")) +
+          ' <small>unlock ✠' + s.unlockCost + " in Library</small></button>";
+      }
     }
     html +=
       '<button class="opponent-chip alone' + (chosenSaint === null ? " selected" : "") + '" data-alone="1">' +
