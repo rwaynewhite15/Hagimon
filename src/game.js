@@ -2,11 +2,13 @@
    HAGIMON — Core Game Logic
    Each pilgrimage is a complete, self-contained game. The seven
    deadly sins begin in a pool, each with Power (how strong they
-   are) and Prevalence (how likely they are to be called). Win a
-   trial and the sin's power breaks by your margin of victory;
-   lose and it grows stronger and more prevalent — and costs you
-   one of three Resolve. Drive every sin's power to zero to
-   triumph. Nothing carries over between pilgrimages.
+   are) and Prevalence (how likely they are to be called). Each
+   turn, up to three sins manifest — the pilgrim chooses which
+   to face and which saint to invoke. Win and the sin's power
+   breaks by the margin of victory; lose and it grows stronger
+   and more prevalent, and costs one of three Resolve. Sin also
+   festers with time: every 5th trial, all standing sins grow.
+   Drive every sin's power to zero to triumph.
 
    Classes: Saint, Sin, Pilgrim, Trial, Pilgrimage.
    No dependencies beyond data.js. Works in browser and Node.
@@ -33,11 +35,11 @@
   const MAX_VIRTUE = 10;
   const STARTING_VIRTUE = 3;
   const MAX_RESOLVE = 3;
-  const STARTING_DULIA = 12;
+  const STARTING_DULIA = 10;
   const STARTER_SAINT = "St. Jude"; // the patron of lost causes walks with every new pilgrim
 
   // The sin pool
-  const SIN_START_POWER = 12;
+  const SIN_START_POWER = 13;
   const SIN_START_PREVALENCE = 3;
   const SIN_POWER_CAP = 18;
   const SIN_PREVALENCE_CAP = 9;
@@ -46,6 +48,16 @@
   const DAMAGE_CAP = 4; // max power broken by one victory
   const PETER_DAMAGE = 3; // Keys of the Kingdom auto-success breaks this much
 
+  // The turn structure
+  const MANIFEST_COUNT = 3; // sins that crowd around the pilgrim each turn
+  const FESTER_INTERVAL = 4; // every Nth trial, sin festers...
+  const FESTER_GROWTH = 1; // ...all standing sins gain this much power
+  const SPURNED_SPREAD = 1; // manifested sins left unfaced grow this much bolder (prevalence)
+  const REST_TRIALS = 1; // a saint who intercedes rests for the next trial
+  const PLEAD_COST = 3; // grace to re-roll providence after a losing trial
+
+  const PROVIDENCE_MIN = 1;
+  const PROVIDENCE_MAX = 4;
   const PATRON_BONUS = 2;
 
   function severityForPower(power) {
@@ -214,21 +226,25 @@
   }
 
   /* ------------------------- Trial --------------------------
-     One confrontation: the pilgrim, assailed by a sin at its
-     current power, with (optionally) one saint interceding.     */
+     One confrontation, resolved as a PURE computation — nothing
+     is applied to the pilgrim or the pool until the pilgrimage
+     commits the result. This allows Pleading for Providence.
+
+     opts: { peterBlocked, theresaSpent }                        */
 
   class Trial {
-    constructor(pilgrim, sin, saint, rng) {
+    constructor(pilgrim, sin, saint, rng, opts) {
       this.pilgrim = pilgrim;
       this.sin = sin;
       this.saint = saint || null; // null = face it alone
       this.rng = rng || Math.random;
+      this.opts = opts || {};
     }
 
     /**
-     * Resolve the trial.
-     * Returns { victory, defense, power, damage, log[],
-     *           graceEarned, resolveRestored, providence }
+     * Resolve the trial (no side effects).
+     * Returns { victory, defense, power, damage, log[], graceEarned,
+     *           resolveRestored, providence, peterAuto }
      */
     resolve() {
       const p = this.pilgrim;
@@ -244,11 +260,15 @@
 
       // --- St. Peter: Venial-band sins fall outright ----------
       if (saint && saint.abilityKey === "peter" && sin.severity === "Venial") {
-        log.push(
-          "🗝️ " + saint.name + " turns the Keys of the Kingdom — the weakened sin cannot stand. " +
-            "Its power breaks by " + PETER_DAMAGE + "."
-        );
-        return this._finish(true, sin.power, sin.power, PETER_DAMAGE, log, 0);
+        if (this.opts.peterBlocked) {
+          log.push("🗝️ The Keys of the Kingdom must rest — they cannot turn twice in a row. The trial is contested.");
+        } else {
+          log.push(
+            "🗝️ " + saint.name + " turns the Keys of the Kingdom — the weakened sin cannot stand. " +
+              "Its power breaks by " + PETER_DAMAGE + "."
+          );
+          return this._finish(true, sin.power, sin.power, PETER_DAMAGE, log, 0, true);
+        }
       }
 
       // --- Sin's effective power for this trial ---------------
@@ -297,7 +317,7 @@
       }
 
       // Providence: an unseen hand (rolled at the end of the tally)
-      const providence = 1 + Math.floor(this.rng() * 4);
+      const providence = PROVIDENCE_MIN + Math.floor(this.rng() * (PROVIDENCE_MAX - PROVIDENCE_MIN + 1));
       defense += providence;
       log.push("🙏 Providence favors you +" + providence + " (defense " + defense + ").");
 
@@ -338,12 +358,11 @@
         log.push("💔 " + sin.name + " prevails, " + power + " to " + defense + ". You stumble, but the road goes on.");
       }
 
-      return this._finish(victory, defense, power, damage, log, providence);
+      return this._finish(victory, defense, power, damage, log, providence, false);
     }
 
-    /** Award grace, apply post-trial abilities. */
-    _finish(victory, defense, power, damage, log, providence) {
-      const p = this.pilgrim;
+    /** Tally prizes (computed only — applied at commit). */
+    _finish(victory, defense, power, damage, log, providence, peterAuto) {
       const saint = this.saint;
       let grace = victory ? this.sin.gracePrize : 2;
       let resolveRestored = 0;
@@ -360,11 +379,13 @@
       }
 
       if (victory && saint && saint.abilityKey === "theresa") {
-        resolveRestored = 1;
-        log.push("🌹 " + saint.name + "'s Little Way restores 1 Resolve.");
+        if (this.opts.theresaSpent) {
+          log.push("🌹 " + saint.name + "'s Little Way has already been spent this pilgrimage.");
+        } else {
+          resolveRestored = 1;
+          log.push("🌹 " + saint.name + "'s Little Way restores 1 Resolve — once each pilgrimage.");
+        }
       }
-
-      p.addGrace(grace);
 
       return {
         victory: victory,
@@ -372,6 +393,7 @@
         power: power,
         damage: damage,
         providence: providence,
+        peterAuto: !!peterAuto,
         log: log,
         graceEarned: grace,
         resolveRestored: resolveRestored,
@@ -379,10 +401,64 @@
     }
   }
 
+  /* -------------------- Trial preview ------------------------
+     The deterministic outlook for invoking `saint` (or null)
+     against `sin`, before providence is rolled. Powers the
+     odds shown on each chip.                                    */
+
+  function previewTrial(pilgrim, sin, saint, opts) {
+    opts = opts || {};
+
+    if (saint && saint.abilityKey === "peter" && sin.severity === "Venial" && !opts.peterBlocked) {
+      return { auto: true, winChance: 1, minDamage: PETER_DAMAGE, maxDamage: PETER_DAMAGE, surge: false };
+    }
+
+    let power = sin.power;
+    if (saint && saint.abilityKey === "cecilia") power = Math.max(1, power - 2);
+
+    let base = pilgrim.virtues[sin.virtue];
+    let surge = false;
+    if (saint) {
+      base += saint.intercessionFor(sin.virtue);
+      if (saint.patronSin === sin.name) base += PATRON_BONUS;
+      if (saint.abilityKey === "michael" && sin.severity !== "Venial") base += 3;
+      if (saint.abilityKey === "augustine" && pilgrim.virtues[sin.virtue] <= 4) base += 2;
+      if (saint.abilityKey === "demetrius" && sin.virtue === "Patience") base += 2;
+      if (saint.abilityKey === "joan" || saint.abilityKey === "jude") surge = true;
+    }
+
+    // Win when base + providence > power (Catherine also wins ties)
+    const ties = saint && saint.abilityKey === "catherine";
+    let needed = power - base + (ties ? 0 : 1); // minimum providence roll to win
+    const rolls = PROVIDENCE_MAX - PROVIDENCE_MIN + 1;
+    let winChance;
+    if (needed <= PROVIDENCE_MIN) winChance = 1;
+    else if (needed > PROVIDENCE_MAX) winChance = 0;
+    else winChance = (PROVIDENCE_MAX - needed + 1) / rolls;
+
+    let minDamage = 0;
+    let maxDamage = 0;
+    if (winChance > 0) {
+      const lowRoll = Math.max(PROVIDENCE_MIN, needed);
+      minDamage = clamp(base + lowRoll - power, ties && base + lowRoll === power ? 1 : 1, DAMAGE_CAP);
+      maxDamage = clamp(base + PROVIDENCE_MAX - power, 1, DAMAGE_CAP);
+    }
+
+    return {
+      auto: false,
+      winChance: winChance,
+      neededProvidence: needed,
+      minDamage: minDamage,
+      maxDamage: maxDamage,
+      surge: surge, // Joan/Jude may still rescue a losing tally
+    };
+  }
+
   /* ---------------------- Pilgrimage ------------------------
-     One complete game. The pool holds every sin's current Power
-     and Prevalence. Trials continue until every sin's power is
-     broken to zero (triumphant) or Resolve runs out (fallen).   */
+     One complete game. Each turn, up to MANIFEST_COUNT sins
+     manifest; the pilgrim chooses which to face. Trials resolve
+     as pending results that must be committed — a lost trial
+     may first be re-rolled by Pleading for Providence.          */
 
   class Pilgrimage {
     constructor(pilgrim, rng) {
@@ -395,7 +471,11 @@
         power: SIN_START_POWER,
         prevalence: SIN_START_PREVALENCE,
       }));
-      this.currentSin = this._manifest();
+      this.fatigue = {}; // saint name → trial number when available again
+      this.theresaSpent = false;
+      this.peterAutoLastTrial = false;
+      this.pending = null; // { sinName, saintName, pleaded, result }
+      this.currentSins = this._drawSins();
       this.outcome = null; // null while walking | "triumphant" | "fallen"
     }
 
@@ -412,47 +492,134 @@
       return this.pool.find((e) => e.name === sinName);
     }
 
-    /** Weighted draw among standing sins: weight = prevalence. */
-    _manifest() {
-      const active = this.activeSins();
-      if (active.length === 0) return null;
-      const total = active.reduce((a, e) => a + e.prevalence, 0);
-      let roll = this.rng() * total;
-      let entry = active[active.length - 1];
-      for (const e of active) {
-        roll -= e.prevalence;
-        if (roll < 0) { entry = e; break; }
+    /** Weighted draw (by prevalence, without replacement) of the sins that manifest this turn. */
+    _drawSins() {
+      const active = this.activeSins().slice();
+      const drawn = [];
+      while (drawn.length < MANIFEST_COUNT && active.length > 0) {
+        const total = active.reduce((a, e) => a + e.prevalence, 0);
+        let roll = this.rng() * total;
+        let idx = active.length - 1;
+        for (let i = 0; i < active.length; i++) {
+          roll -= active[i].prevalence;
+          if (roll < 0) { idx = i; break; }
+        }
+        drawn.push(active[idx].name);
+        active.splice(idx, 1);
       }
-      const def = SIN_DATA.find((d) => d.name === entry.name);
-      return new Sin(def, entry.power);
+      return drawn;
     }
 
-    /** Can this saint be invoked right now? (unlocked + affordable) */
+    /** The manifested sins, at their current pool power. */
+    manifestedSins() {
+      return this.currentSins
+        .map((name) => {
+          const entry = this.poolEntry(name);
+          if (!entry || entry.power <= 0) return null;
+          const def = SIN_DATA.find((d) => d.name === name);
+          return new Sin(def, entry.power);
+        })
+        .filter(Boolean);
+    }
+
+    /** Trials a resting saint has left before they can serve again. */
+    restingFor(saint) {
+      const until = this.fatigue[saint.name] || 0;
+      return Math.max(0, until - this.trialNumber);
+    }
+
+    /** Can this saint be invoked right now? (unlocked + affordable + rested) */
     canInvoke(saint) {
-      return this.pilgrim.isUnlocked(saint.name) && saint.duliaCost <= this.pilgrim.dulia;
+      return (
+        this.pilgrim.isUnlocked(saint.name) &&
+        saint.duliaCost <= this.pilgrim.dulia &&
+        this.restingFor(saint) === 0
+      );
     }
 
     /**
-     * Face the current sin, optionally with a saint (null = alone).
-     * Deducts Dulia, resolves the trial, updates the pool.
-     * Returns the trial result plus pilgrimage bookkeeping.
+     * Face one of the manifested sins (saint may be null = alone).
+     * Resolves the trial as a PENDING result — nothing is applied
+     * until commitTrial(). Returns the result or { error }.
      */
-    faceTrial(saint) {
+    startTrial(sinName, saint) {
       if (this.outcome) throw new Error("The pilgrimage is over.");
+      if (this.pending) return { error: "A trial is already underway — accept it or plead." };
+      if (this.currentSins.indexOf(sinName) === -1) {
+        return { error: sinName + " has not manifested this turn." };
+      }
       if (saint && !this.pilgrim.isUnlocked(saint.name)) {
         return { error: saint.name + " has not yet been unlocked (✠" + saint.unlockCost + " in the Library)." };
       }
       if (saint && saint.duliaCost > this.pilgrim.dulia) {
         return { error: "Not enough Dulia to invoke " + saint.name + " (needs ✠" + saint.duliaCost + ")." };
       }
+      if (saint && this.restingFor(saint) > 0) {
+        return { error: saint.name + " is resting for " + this.restingFor(saint) + " more trial(s)." };
+      }
 
+      const entry = this.poolEntry(sinName);
+      const def = SIN_DATA.find((d) => d.name === sinName);
+      const sin = new Sin(def, entry.power);
+      const result = new Trial(this.pilgrim, sin, saint, this.rng, {
+        peterBlocked: this.peterAutoLastTrial,
+        theresaSpent: this.theresaSpent,
+      }).resolve();
+
+      this.pending = { sinName: sinName, saintName: saint ? saint.name : null, pleaded: false, result: result };
+      return result;
+    }
+
+    canPlead() {
+      return !!(
+        this.pending &&
+        !this.pending.pleaded &&
+        !this.pending.result.victory &&
+        this.pilgrim.grace >= PLEAD_COST
+      );
+    }
+
+    /**
+     * Plead for Providence: spend Grace to face the same trial
+     * again with a fresh roll. Once per trial, only after a loss.
+     */
+    pleadProvidence(saintLookup) {
+      if (!this.canPlead()) return { error: "You cannot plead for providence now." };
+      this.pilgrim.grace -= PLEAD_COST;
+      const pendingSaint = this.pending.saintName ? saintLookup(this.pending.saintName) : null;
+      const entry = this.poolEntry(this.pending.sinName);
+      const def = SIN_DATA.find((d) => d.name === this.pending.sinName);
+      const sin = new Sin(def, entry.power);
+      const result = new Trial(this.pilgrim, sin, pendingSaint, this.rng, {
+        peterBlocked: this.peterAutoLastTrial,
+        theresaSpent: this.theresaSpent,
+      }).resolve();
+      result.log.unshift("🙏 You plead for Providence (−" + PLEAD_COST + " Grace) and stand against the sin once more…");
+      result.pleaded = true;
+      this.pending.result = result;
+      this.pending.pleaded = true;
+      return result;
+    }
+
+    /**
+     * Commit the pending trial: apply costs, prizes, pool changes,
+     * fatigue, festering, and outcome. Returns the final result.
+     */
+    commitTrial(saintLookup) {
+      if (!this.pending) throw new Error("No trial to commit.");
+      const pending = this.pending;
+      const result = pending.result;
+      const saint = pending.saintName ? saintLookup(pending.saintName) : null;
+      const entry = this.poolEntry(pending.sinName);
+      const sin = new Sin(SIN_DATA.find((d) => d.name === pending.sinName), entry.power);
+
+      // Costs & prizes
       if (saint) this.pilgrim.dulia -= saint.duliaCost;
-      const entry = this.poolEntry(this.currentSin.name);
-      const result = new Trial(this.pilgrim, this.currentSin, saint, this.rng).resolve();
+      this.pilgrim.addGrace(result.graceEarned);
 
       if (result.victory) {
-        this.pilgrim.addDulia(this.currentSin.duliaPrize);
-        result.log.push("✠ Your devotion deepens: +" + this.currentSin.duliaPrize + " Dulia.");
+        this.pilgrim.addDulia(sin.duliaPrize);
+        result.log.push("✠ Your devotion deepens: +" + sin.duliaPrize + " Dulia.");
         entry.power = Math.max(0, entry.power - result.damage);
         entry.prevalence = Math.max(1, entry.prevalence - 1);
         if (entry.power === 0) {
@@ -461,6 +628,10 @@
           result.log.push(
             "📉 " + entry.name + " retreats: power " + entry.power + ", prevalence " + entry.prevalence + "."
           );
+        }
+        if (result.resolveRestored && !this.theresaSpent) {
+          this.resolve = Math.min(MAX_RESOLVE, this.resolve + result.resolveRestored);
+          this.theresaSpent = true;
         }
       } else {
         this.resolve -= 1;
@@ -471,8 +642,28 @@
           "📈 Your fall feeds " + entry.name + ": power " + entry.power + ", prevalence " + entry.prevalence + "."
         );
       }
-      if (result.resolveRestored) {
-        this.resolve = Math.min(MAX_RESOLVE, this.resolve + result.resolveRestored);
+
+      // Fatigue: the interceding saint rests
+      if (saint) {
+        this.fatigue[saint.name] = this.trialNumber + 1 + REST_TRIALS;
+      }
+      this.peterAutoLastTrial = !!result.peterAuto;
+
+      // Sins spurned this turn grow bolder
+      for (const name of this.currentSins) {
+        if (name === pending.sinName) continue;
+        const spurned = this.poolEntry(name);
+        if (spurned && spurned.power > 0) {
+          spurned.prevalence = Math.min(SIN_PREVALENCE_CAP, spurned.prevalence + SPURNED_SPREAD);
+        }
+      }
+
+      // Festering: every FESTER_INTERVAL trials, standing sins grow
+      if (this.trialNumber % FESTER_INTERVAL === 0 && this.activeSins().length > 0) {
+        for (const e of this.activeSins()) {
+          e.power = Math.min(SIN_POWER_CAP, e.power + FESTER_GROWTH);
+        }
+        result.log.push("🕯️ The road wears on — sin festers: every standing sin grows +" + FESTER_GROWTH + " power.");
       }
 
       // End states, then the road continues
@@ -484,9 +675,10 @@
         result.log.push("🎺 ALL SEVEN SINS ARE VANQUISHED — the pilgrimage is TRIUMPHANT!");
       } else {
         this.trialNumber += 1;
-        this.currentSin = this._manifest();
+        this.currentSins = this._drawSins();
       }
 
+      this.pending = null;
       result.outcome = this.outcome;
       result.vanquished = this.vanquishedCount();
       return result;
@@ -497,7 +689,11 @@
         trialNumber: this.trialNumber,
         resolve: this.resolve,
         pool: this.pool.map((e) => ({ name: e.name, power: e.power, prevalence: e.prevalence })),
-        currentSin: this.currentSin ? this.currentSin.toJSON() : null,
+        currentSins: this.currentSins.slice(),
+        fatigue: Object.assign({}, this.fatigue),
+        theresaSpent: this.theresaSpent,
+        peterAutoLastTrial: this.peterAutoLastTrial,
+        pending: this.pending,
         outcome: this.outcome,
       };
     }
@@ -509,7 +705,11 @@
       pg.trialNumber = json.trialNumber;
       pg.resolve = json.resolve;
       pg.pool = (json.pool || []).map((e) => ({ name: e.name, power: e.power, prevalence: e.prevalence }));
-      pg.currentSin = json.currentSin ? Sin.fromJSON(json.currentSin) : null;
+      pg.currentSins = (json.currentSins || []).slice();
+      pg.fatigue = Object.assign({}, json.fatigue || {});
+      pg.theresaSpent = !!json.theresaSpent;
+      pg.peterAutoLastTrial = !!json.peterAutoLastTrial;
+      pg.pending = json.pending || null;
       pg.outcome = json.outcome || null;
       return pg;
     }
@@ -530,6 +730,7 @@
     Trial,
     Pilgrimage,
     severityForPower,
+    previewTrial,
     MAX_VIRTUE,
     STARTING_VIRTUE,
     MAX_RESOLVE,
@@ -540,6 +741,10 @@
     SIN_POWER_CAP,
     SIN_PREVALENCE_CAP,
     DAMAGE_CAP,
+    MANIFEST_COUNT,
+    FESTER_INTERVAL,
+    REST_TRIALS,
+    PLEAD_COST,
     PATRON_BONUS,
   };
 

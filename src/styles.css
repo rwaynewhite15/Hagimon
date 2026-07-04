@@ -472,6 +472,55 @@ body {
 
 .opponent-chip.locked { opacity: 0.45; border-style: dotted; }
 
+.opponent-chip.resting { opacity: 0.5; border-style: dashed; }
+
+/* ---------------- choosing your battle ---------------- */
+
+.sin-choices {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+}
+
+.sin-choice {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.6rem 0.9rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sin-choice:hover { background: var(--panel-strong); }
+
+.sin-choice.selected {
+  background: rgba(245, 197, 66, 0.1);
+  box-shadow: 0 0 0 1px var(--gold);
+}
+
+.sin-choice-name { flex: 1; display: flex; flex-direction: column; }
+.sin-choice-name small { color: var(--text-dim); font-size: 0.75rem; }
+
+.inrun-nav { margin-left: auto; display: flex; gap: 0.4rem; }
+
+.muted-note { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 0.6rem; }
+
+.result-panel .btn { margin-top: 0.4rem; }
+
+@media (min-width: 700px) {
+  .sin-choices { grid-template-columns: repeat(3, 1fr); }
+  .sin-choice { flex-direction: column; text-align: center; }
+  .sin-choice-name { align-items: center; }
+}
+
 .picker-title {
   font-family: var(--serif);
   color: var(--text-dim);

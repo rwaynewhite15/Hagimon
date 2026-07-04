@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="HAGIMON — Invoke the Saints. Conquer the Seven Sins. A Saint-themed game of virtue and intercession." />
+  <meta name="description" content="HAGIMON — Invoke the Saints. Break the Powers of Sin. A Saint-themed roguelike of virtue and intercession." />
   <title>✨ HAGIMON ✨ — Invoke the Saints</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✨</text></svg>" />
   <link rel="stylesheet" href="src/styles.css" />
@@ -11,7 +11,7 @@
 <body>
   <main class="app">
 
-    <!-- ================= HOME ================= -->
+    <!-- ================= HOME (main menu) ================= -->
     <section id="screen-home" class="screen active">
       <header class="hero">
         <h1 class="game-title">✨ HAGIMON ✨</h1>
@@ -20,34 +20,32 @@
       <div id="home-pilgrim-info"></div>
       <nav class="home-nav">
         <button class="btn battle" id="home-pilgrimage-btn">⚜️ Begin Pilgrimage</button>
-        <button class="btn" data-nav="library">📜 View Saints</button>
-        <button class="btn primary" data-nav="chapel">⛪ Chapel</button>
       </nav>
       <footer class="home-footer">
-        <p>The seven deadly sins stand at full power. Drive every one to zero.<br />
-        Spend <strong>Dulia</strong> to invoke the saints' intercession,<br />
-        and <strong>Grace</strong> to perfect your virtues — for this pilgrimage only.</p>
+        <p>The seven deadly sins stand at full power. Choose your battles,<br />
+        invoke the saints, and drive every sin's power to zero.<br />
+        Every pilgrimage begins anew — only your records endure.</p>
       </footer>
     </section>
 
-    <!-- ================= SAINTS LIBRARY ================= -->
+    <!-- ================= SAINTS LIBRARY (in-game) ================= -->
     <section id="screen-library" class="screen">
       <header class="screen-head">
-        <button class="btn back" data-nav="home">← Home</button>
-        <h2>📜 Saints Library</h2>
+        <button class="btn back" data-nav="pilgrimage">← Pilgrimage</button>
+        <h2>📜 Saints</h2>
       </header>
-      <p class="screen-sub">Tap a saint to view their full card. Locked saints can be unlocked with Dulia earned from trials.</p>
+      <p class="screen-sub">Tap a saint to view their full card. Unlock locked saints with Dulia earned from trials.</p>
       <div id="library-dulia"></div>
       <div id="library-list" class="library-list"></div>
     </section>
 
-    <!-- ================= CHAPEL ================= -->
+    <!-- ================= CHAPEL (in-game) ================= -->
     <section id="screen-chapel" class="screen">
       <header class="screen-head">
-        <button class="btn back" data-nav="home">← Home</button>
+        <button class="btn back" data-nav="pilgrimage">← Pilgrimage</button>
         <h2>⛪ Chapel</h2>
       </header>
-      <p class="screen-sub">Grace is the divine assistance that elevates, heals, and strengthens your natural abilities. Spend it to raise your virtues for this pilgrimage.</p>
+      <p class="screen-sub">Grace is the divine assistance that elevates, heals, and strengthens your natural abilities. Spend it to raise your virtues for this pilgrimage — or keep some to plead for Providence.</p>
       <div id="chapel-grace"></div>
       <div id="chapel-list" class="builder-list"></div>
     </section>
@@ -55,8 +53,12 @@
     <!-- ================= PILGRIMAGE ================= -->
     <section id="screen-pilgrimage" class="screen">
       <header class="screen-head">
-        <button class="btn back" data-nav="home">← Home</button>
+        <button class="btn back" id="abandon-btn">✕ Menu</button>
         <h2>⚜️ Pilgrimage</h2>
+        <span class="inrun-nav">
+          <button class="btn back" data-nav="library">📜 Saints</button>
+          <button class="btn back" data-nav="chapel">⛪ Chapel</button>
+        </span>
       </header>
       <div id="pilgrimage-hud" class="hud"></div>
       <div id="pilgrimage-pool"></div>
