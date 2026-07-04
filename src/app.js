@@ -7,55 +7,50 @@
 (function () {
   "use strict";
 
-  const STORAGE_COLLECTION = "hagimon.collection";
-  const STORAGE_DECK = "hagimon.deck";
+  const STORAGE_PILGRIM = "hagimon.pilgrim";
+  const STORAGE_PILGRIMAGE = "hagimon.pilgrimage";
+  const LEGACY_KEYS = ["hagimon.collection", "hagimon.deck"]; // pre-redesign saves
 
   /* ------------------- persistent state -------------------- */
 
-  // collection: name → Saint (holds each saint's level & grace)
-  const collection = {};
+  const saints = SAINT_DATA.map((d) => new Saint(d));
+  const saintByName = {};
+  for (const s of saints) saintByName[s.name] = s;
 
-  function loadCollection() {
-    let saved = {};
-    try {
-      saved = JSON.parse(localStorage.getItem(STORAGE_COLLECTION)) || {};
-    } catch (e) {
-      saved = {};
+  let pilgrim = null;
+  let pilgrimage = null; // active run, or null
+
+  function loadState() {
+    for (const k of LEGACY_KEYS) {
+      try { localStorage.removeItem(k); } catch (e) { /* ignore */ }
     }
-    for (const def of SAINT_DATA) {
-      collection[def.name] = new Saint(def, saved[def.name] || {});
+    try {
+      pilgrim = new Pilgrim(JSON.parse(localStorage.getItem(STORAGE_PILGRIM)) || {});
+    } catch (e) {
+      pilgrim = new Pilgrim();
+    }
+    try {
+      const json = JSON.parse(localStorage.getItem(STORAGE_PILGRIMAGE));
+      if (json && !json.outcome) pilgrimage = Pilgrimage.fromJSON(json, pilgrim);
+    } catch (e) {
+      pilgrimage = null;
     }
   }
 
-  function saveCollection() {
-    const out = {};
-    for (const name in collection) out[name] = collection[name].toJSON();
+  function saveState() {
     try {
-      localStorage.setItem(STORAGE_COLLECTION, JSON.stringify(out));
+      localStorage.setItem(STORAGE_PILGRIM, JSON.stringify(pilgrim.toJSON()));
+      if (pilgrimage && !pilgrimage.outcome) {
+        localStorage.setItem(STORAGE_PILGRIMAGE, JSON.stringify(pilgrimage.toJSON()));
+      } else {
+        localStorage.removeItem(STORAGE_PILGRIMAGE);
+      }
     } catch (e) { /* storage unavailable — play on without persistence */ }
-  }
-
-  let deck = null;
-
-  function loadDeck() {
-    try {
-      const json = JSON.parse(localStorage.getItem(STORAGE_DECK));
-      if (json) deck = Deck.fromJSON(json, collection);
-    } catch (e) {
-      deck = null;
-    }
-  }
-
-  function saveDeck() {
-    try {
-      if (deck) localStorage.setItem(STORAGE_DECK, JSON.stringify(deck.toJSON()));
-      else localStorage.removeItem(STORAGE_DECK);
-    } catch (e) { /* storage unavailable */ }
   }
 
   /* ------------------- screen routing ---------------------- */
 
-  const SCREENS = ["home", "library", "builder", "battle"];
+  const SCREENS = ["home", "library", "chapel", "pilgrimage"];
 
   function show(screen) {
     for (const s of SCREENS) {
@@ -64,11 +59,11 @@
     window.scrollTo(0, 0);
     if (screen === "home") renderHome();
     if (screen === "library") renderLibrary();
-    if (screen === "builder") renderBuilder();
-    if (screen === "battle") renderBattleSetup();
+    if (screen === "chapel") renderChapel();
+    if (screen === "pilgrimage") renderPilgrimage();
   }
 
-  /* ------------------- shared card pieces ------------------ */
+  /* ------------------- shared pieces ----------------------- */
 
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
@@ -80,13 +75,15 @@
     return '<span class="rarity rarity-' + rarity.toLowerCase() + '">' + rarity + "</span>";
   }
 
-  function virtueBars(saint) {
-    const stats = saint.getStatsWithRarity();
-    const dom = saint.getDominantVirtue();
+  function severityBadge(sev) {
+    return '<span class="severity severity-' + sev.toLowerCase() + '">' + sev + "</span>";
+  }
+
+  function virtueBars(stats, dominantName) {
     let html = '<div class="virtues">';
     for (const v of VIRTUE_NAMES) {
       const val = stats[v];
-      const isDom = v === dom.name;
+      const isDom = v === dominantName;
       html +=
         '<div class="virtue-row' + (isDom ? " dominant" : "") + '">' +
         '<span class="virtue-name">' + v + (isDom ? " ★" : "") + "</span>" +
@@ -98,7 +95,7 @@
     return html + "</div>";
   }
 
-  function fullCard(saint) {
+  function saintCard(saint) {
     return (
       '<div class="card rarity-border-' + saint.rarity.toLowerCase() + '">' +
       '<div class="card-head">' +
@@ -107,11 +104,11 @@
       '<p class="card-title">' + esc(saint.title) + "</p></div>" +
       rarityBadge(saint.rarity) +
       "</div>" +
-      '<div class="card-meta">Level ' + saint.level +
-      ' <span class="grace-meter" title="Grace toward next level">' +
-      "☩ Grace " + saint.gracePoints + "/10</span></div>" +
-      virtueBars(saint) +
+      '<div class="card-meta">✠ Dulia cost: ' + saint.duliaCost + "</div>" +
+      virtueBars(saint.getStatsWithRarity(), saint.getDominantVirtue().name) +
       '<p class="card-ability"><strong>Special Ability:</strong> ' + esc(saint.specialAbility) + "</p>" +
+      '<p class="card-ability"><strong>Invoked against:</strong> ' + esc(saint.patronSin) +
+      " (+" + PATRON_BONUS + " in those trials)</p>" +
       '<p class="card-patronage"><strong>Patron of:</strong> ' + esc(saint.patronage) + "</p>" +
       "</div>"
     );
@@ -120,22 +117,22 @@
   /* ------------------- home screen ------------------------- */
 
   function renderHome() {
-    const deckInfo = document.getElementById("home-deck-info");
-    const battleBtn = document.getElementById("home-battle-btn");
-    if (deck && deck.isValid()) {
-      deckInfo.innerHTML =
-        '<div class="deck-banner">📿 Active deck: <strong>' + esc(deck.name) +
-        "</strong> — " + deck.cards.length + " cards, ready for battle</div>";
-      battleBtn.style.display = "";
-    } else if (deck) {
-      deckInfo.innerHTML =
-        '<div class="deck-banner incomplete">📿 Deck in progress: <strong>' + esc(deck.name) +
-        "</strong> — " + deck.cards.length + "/" + DECK_SIZE + " cards</div>";
-      battleBtn.style.display = "none";
-    } else {
-      deckInfo.innerHTML = "";
-      battleBtn.style.display = "none";
+    const info = document.getElementById("home-pilgrim-info");
+    const st = pilgrim.stats;
+    let html =
+      '<div class="deck-banner">☩ Grace: <strong>' + pilgrim.grace + "</strong>" +
+      ' &nbsp;·&nbsp; 😇 Sins banished: <strong>' + st.sinsBanished + "</strong>" +
+      ' &nbsp;·&nbsp; 🌟 Pilgrimages completed: <strong>' + st.completed + "</strong></div>";
+    if (pilgrimage) {
+      html +=
+        '<div class="deck-banner incomplete">🚶 A pilgrimage is underway — Trial ' +
+        pilgrimage.trialNumber + "/" + TRIALS_PER_PILGRIMAGE +
+        ", ❤ " + pilgrimage.resolve + ", ✠ " + pilgrimage.dulia + "</div>";
     }
+    info.innerHTML = html;
+    document.getElementById("home-pilgrimage-btn").textContent = pilgrimage
+      ? "🚶 Continue Pilgrimage"
+      : "⚜️ Begin Pilgrimage";
   }
 
   /* ------------------- saints library ---------------------- */
@@ -145,17 +142,17 @@
   function renderLibrary() {
     const list = document.getElementById("library-list");
     let html = "";
-    for (const def of SAINT_DATA) {
-      const saint = collection[def.name];
+    for (const saint of saints) {
       if (expandedSaint === saint.name) {
-        html += '<div class="library-entry" data-saint="' + esc(saint.name) + '">' + fullCard(saint) + "</div>";
+        html += '<div class="library-entry" data-saint="' + esc(saint.name) + '">' + saintCard(saint) + "</div>";
       } else {
         const dom = saint.getDominantVirtue();
         html +=
           '<button class="library-entry compact" data-saint="' + esc(saint.name) + '">' +
           '<span class="card-emblem">' + saint.emblem + "</span>" +
           '<span class="compact-name">' + esc(saint.name) +
-          '<small>Lv ' + saint.level + " · " + dom.name + " " + dom.value + "</small></span>" +
+          "<small>✠ " + saint.duliaCost + " · " + dom.name + " " + dom.value +
+          " · vs " + esc(saint.patronSin) + "</small></span>" +
           rarityBadge(saint.rarity) +
           "</button>";
       }
@@ -170,177 +167,182 @@
     });
   }
 
-  /* ------------------- deck builder ------------------------ */
+  /* ------------------- chapel (spend Grace) ----------------- */
 
-  function renderBuilder() {
-    if (!deck) deck = new Deck("My Deck", "Pilgrim");
-    document.getElementById("deck-name").value = deck.name;
+  function renderChapel() {
+    document.getElementById("chapel-grace").innerHTML =
+      '<div class="deck-banner">☩ Grace to spend: <strong>' + pilgrim.grace + "</strong></div>";
 
-    const count = deck.cards.length;
-    const progress = document.getElementById("deck-progress");
-    progress.innerHTML =
-      '<div class="progress-label">' + count + " / " + DECK_SIZE + " cards</div>" +
-      '<div class="progress-track"><div class="progress-fill" style="width:' +
-      Math.round((count / DECK_SIZE) * 100) + '%"></div></div>';
-
-    const list = document.getElementById("builder-list");
+    const list = document.getElementById("chapel-list");
     let html = "";
-    for (const def of SAINT_DATA) {
-      const saint = collection[def.name];
-      const copies = deck.countOf(saint.name);
+    for (const v of VIRTUE_NAMES) {
+      const val = pilgrim.virtues[v];
+      const maxed = val >= MAX_VIRTUE;
+      const cost = pilgrim.raiseCost(v);
       html +=
         '<div class="builder-row">' +
-        '<span class="card-emblem">' + saint.emblem + "</span>" +
-        '<span class="compact-name">' + esc(saint.name) +
-        "<small>" + saint.rarity + " · Lv " + saint.level + "</small></span>" +
-        '<span class="builder-controls">' +
-        '<button class="ctrl-btn" data-remove="' + esc(saint.name) + '"' + (copies === 0 ? " disabled" : "") + ">−</button>" +
-        '<span class="copy-count">' + copies + "</span>" +
-        '<button class="ctrl-btn" data-add="' + esc(saint.name) + '"' +
-        (copies >= MAX_COPIES || count >= DECK_SIZE ? " disabled" : "") + ">+</button>" +
-        "</span></div>";
+        '<span class="virtue-dot" style="background:' + VIRTUE_COLORS[v] + '"></span>' +
+        '<span class="compact-name">' + v +
+        "<small>" + (maxed ? "Perfected" : "Raise to " + (val + 1) + " for " + cost + " Grace") + "</small></span>" +
+        '<span class="chapel-track"><span class="virtue-track"><span class="virtue-fill" style="width:' +
+        val * 10 + "%;background:" + VIRTUE_COLORS[v] + '"></span></span></span>' +
+        '<span class="copy-count">' + val + "</span>" +
+        '<button class="ctrl-btn" data-raise="' + v + '"' +
+        (maxed || pilgrim.grace < cost ? " disabled" : "") + ">+</button>" +
+        "</div>";
     }
     list.innerHTML = html;
-
-    list.querySelectorAll("[data-add]").forEach(function (btn) {
+    list.querySelectorAll("[data-raise]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        const res = deck.addCard(collection[btn.getAttribute("data-add")]);
+        const res = pilgrim.raiseVirtue(btn.getAttribute("data-raise"));
         if (!res.ok) toast(res.error);
-        renderBuilder();
+        saveState();
+        renderChapel();
       });
     });
-    list.querySelectorAll("[data-remove]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        deck.removeCard(btn.getAttribute("data-remove"));
-        renderBuilder();
-      });
-    });
+  }
 
-    const hint = document.getElementById("builder-hint");
-    const saveBtn = document.getElementById("deck-save");
-    if (deck.isValid()) {
-      hint.textContent = "Your deck is complete. Save it and go to battle!";
-      saveBtn.disabled = false;
-    } else if (count < DECK_SIZE) {
-      hint.textContent =
-        "Add " + (DECK_SIZE - count) + " more card" + (DECK_SIZE - count === 1 ? "" : "s") +
-        " — up to " + MAX_COPIES + " copies of each saint. Use ✨ Fill Deck to top up randomly.";
-      saveBtn.disabled = true;
+  /* ------------------- pilgrimage -------------------------- */
+
+  let chosenSaint = undefined; // undefined = nothing chosen yet; null = face alone
+  let lastResult = null;
+
+  function startOrContinuePilgrimage() {
+    if (!pilgrimage) {
+      pilgrimage = new Pilgrimage(pilgrim);
+      chosenSaint = undefined;
+      lastResult = null;
+      saveState();
+    }
+    show("pilgrimage");
+  }
+
+  function renderPilgrimage() {
+    if (!pilgrimage) { show("home"); return; }
+    renderHud();
+    if (lastResult) {
+      renderTrialResult();
     } else {
-      hint.textContent = "Deck has an invalid composition.";
-      saveBtn.disabled = true;
+      renderTrialSetup();
     }
   }
 
-  // "Fill Deck" tops the deck up with random legal picks;
-  // hand-picked cards always stay in the deck.
-  function fillDeck() {
-    if (!deck) deck = new Deck("My Deck", "Pilgrim");
-    let guard = 500;
-    while (deck.cards.length < DECK_SIZE && guard-- > 0) {
-      const def = SAINT_DATA[Math.floor(Math.random() * SAINT_DATA.length)];
-      deck.addCard(collection[def.name]); // silently skips full/duplicate limits
+  function renderHud() {
+    const pg = pilgrimage;
+    document.getElementById("pilgrimage-hud").innerHTML =
+      '<span class="hud-item">Trial <strong>' + pg.trialNumber + "/" + TRIALS_PER_PILGRIMAGE + "</strong></span>" +
+      '<span class="hud-item">' + "❤".repeat(pg.resolve) + '<span class="heart-lost">' +
+      "♡".repeat(Math.max(0, MAX_RESOLVE - pg.resolve)) + "</span></span>" +
+      '<span class="hud-item">✠ <strong>' + pg.dulia + "</strong> Dulia</span>" +
+      '<span class="hud-item">☩ <strong>' + pilgrim.grace + "</strong> Grace</span>";
+  }
+
+  function renderTrialSetup() {
+    const pg = pilgrimage;
+    const sin = pg.currentSin;
+    const el = document.getElementById("pilgrimage-body");
+
+    let html =
+      '<div class="card sin-card severity-border-' + sin.severity.toLowerCase() + '">' +
+      '<div class="card-head">' +
+      '<span class="card-emblem">' + sin.emblem + "</span>" +
+      '<div class="card-id"><h3>' + sin.name + "</h3>" +
+      '<p class="card-title">' + esc(sin.flavor) + "</p></div>" +
+      severityBadge(sin.severity) +
+      "</div>" +
+      '<div class="sin-stats">Power <strong>' + sin.power + "</strong>" +
+      " · assails your <strong style=\"color:" + VIRTUE_COLORS[sin.virtue] + '">' + sin.virtue +
+      "</strong> (yours: " + pilgrim.virtues[sin.virtue] + ")</div>" +
+      "</div>";
+
+    html += '<h4 class="picker-title">Whom will you invoke? <small>(✠ ' + pg.dulia + " available)</small></h4>";
+    html += '<div class="opponent-picker">';
+    for (const s of saints) {
+      const affordable = pg.canAfford(s);
+      const sel = chosenSaint === s;
+      html +=
+        '<button class="opponent-chip' + (sel ? " selected" : "") + '" data-invoke="' + esc(s.name) + '"' +
+        (affordable ? "" : " disabled") + ">" +
+        s.emblem + " " + esc(s.name.replace("St. ", "")) +
+        ' <small>✠' + s.duliaCost + " · " + sin.virtue.slice(0, 4) + " " + s.intercessionFor(sin.virtue) +
+        (s.patronSin === sin.name ? " ✨" : "") + "</small></button>";
     }
-    renderBuilder();
+    html +=
+      '<button class="opponent-chip alone' + (chosenSaint === null ? " selected" : "") + '" data-alone="1">' +
+      "🚶 Face it alone <small>✠0</small></button>";
+    html += "</div>";
+
+    if (chosenSaint) html += saintCard(chosenSaint);
+
+    html += '<button class="btn battle wide" id="face-trial"' +
+      (chosenSaint === undefined ? " disabled" : "") + ">🙏 FACE THE TRIAL</button>";
+
+    el.innerHTML = html;
+
+    el.querySelectorAll("[data-invoke]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        chosenSaint = saintByName[btn.getAttribute("data-invoke")];
+        renderPilgrimage();
+      });
+    });
+    const aloneBtn = el.querySelector("[data-alone]");
+    if (aloneBtn) aloneBtn.addEventListener("click", function () {
+      chosenSaint = null;
+      renderPilgrimage();
+    });
+    document.getElementById("face-trial").addEventListener("click", function () {
+      if (chosenSaint === undefined) return;
+      const res = pilgrimage.faceTrial(chosenSaint);
+      if (res.error) { toast(res.error); return; }
+      lastResult = res;
+      chosenSaint = undefined;
+      saveState();
+      renderPilgrimage();
+    });
   }
 
-  /* ------------------- battle screen ----------------------- */
+  function renderTrialResult() {
+    const el = document.getElementById("pilgrimage-body");
+    const res = lastResult;
 
-  let champion = null;
-  let opponent = null;
+    let verdict;
+    if (res.victory) {
+      verdict = '<h3 class="verdict win">✨ The sin is banished!</h3>';
+    } else {
+      verdict = '<h3 class="verdict lose">💔 The trial is lost</h3>';
+    }
+    let html = '<div class="result-panel">' + verdict + '<ul class="battle-log">';
+    for (const line of res.log) html += "<li>" + esc(line) + "</li>";
+    html += "</ul>";
 
-  function renderBattleSetup() {
-    document.getElementById("battle-result").innerHTML = "";
-    if (!champion && deck && deck.cards.length > 0) champion = deck.draw();
-    renderBattleSides();
-    renderOpponentPicker();
-  }
-
-  function renderBattleSides() {
-    const el = document.getElementById("battle-sides");
-    let html = "";
-    html += '<div class="battle-side"><h4>Your Champion</h4>';
-    html += champion ? fullCard(champion) : '<p class="muted">Draw a champion from your deck.</p>';
-    html += '<button class="btn small" id="redraw-btn">🃏 Draw from Deck</button></div>';
-    html += '<div class="battle-vs">VS</div>';
-    html += '<div class="battle-side"><h4>Opponent</h4>';
-    html += opponent ? fullCard(opponent) : '<p class="muted">Choose an opponent below.</p>';
+    if (res.outcome === "completed") {
+      html +=
+        '<p class="grace-summary">🌟 Pilgrimage complete! All seven sins faced. Total Grace: ' +
+        pilgrim.grace + "</p>" +
+        '<button class="btn primary" id="pilgrimage-done">⛪ Return in Triumph</button>';
+    } else if (res.outcome === "fallen") {
+      html +=
+        '<p class="grace-summary">🌑 The pilgrimage ends, but nothing is wasted — Grace: ' +
+        pilgrim.grace + ". Visit the Chapel to grow stronger.</p>" +
+        '<button class="btn primary" id="pilgrimage-done">⛪ Return Home</button>';
+    } else {
+      html += '<button class="btn primary" id="next-trial">🚶 Continue the Road →</button>';
+    }
     html += "</div>";
     el.innerHTML = html;
 
-    document.getElementById("redraw-btn").addEventListener("click", function () {
-      if (!deck || deck.cards.length === 0) {
-        toast("Build a deck first!");
-        return;
-      }
-      champion = deck.draw();
-      document.getElementById("battle-result").innerHTML = "";
-      renderBattleSides();
-      updateBattleButton();
+    const next = document.getElementById("next-trial");
+    if (next) next.addEventListener("click", function () {
+      lastResult = null;
+      renderPilgrimage();
     });
-    updateBattleButton();
-  }
-
-  function renderOpponentPicker() {
-    const el = document.getElementById("opponent-picker");
-    let html = "";
-    for (const def of SAINT_DATA) {
-      const saint = collection[def.name];
-      const sel = opponent && opponent.name === saint.name;
-      html +=
-        '<button class="opponent-chip' + (sel ? " selected" : "") + '" data-opp="' + esc(saint.name) + '">' +
-        saint.emblem + " " + esc(saint.name.replace("St. ", "")) + "</button>";
-    }
-    el.innerHTML = html;
-    el.querySelectorAll("[data-opp]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        opponent = collection[btn.getAttribute("data-opp")];
-        document.getElementById("battle-result").innerHTML = "";
-        renderBattleSides();
-        renderOpponentPicker();
-      });
+    const done = document.getElementById("pilgrimage-done");
+    if (done) done.addEventListener("click", function () {
+      pilgrimage = null;
+      lastResult = null;
+      saveState();
+      show("home");
     });
-  }
-
-  function updateBattleButton() {
-    document.getElementById("begin-battle").disabled = !(champion && opponent);
-  }
-
-  function runBattle() {
-    if (!champion || !opponent) return;
-    const result = new Battle(champion, opponent).resolve();
-    saveCollection();
-
-    const el = document.getElementById("battle-result");
-    let verdict;
-    if (result.draw) {
-      verdict = '<h3 class="verdict draw">🤝 A Holy Draw</h3>';
-    } else {
-      const youWon = result.winner === champion;
-      verdict =
-        '<h3 class="verdict ' + (youWon ? "win" : "lose") + '">' +
-        (youWon ? "🏆 " : "💫 ") + esc(result.winner.name) + " is victorious!</h3>";
-    }
-    let html = '<div class="result-panel">' + verdict + '<ul class="battle-log">';
-    for (const line of result.log) html += "<li>" + esc(line) + "</li>";
-    html += "</ul>";
-    html +=
-      '<p class="grace-summary">☩ Grace awarded — ' +
-      esc(champion.name) + ": +" + result.graceAwarded[champion.name] +
-      (champion === opponent
-        ? ""
-        : " · " + esc(opponent.name) + ": +" + result.graceAwarded[opponent.name]) +
-      "</p>";
-    html += '<button class="btn primary" id="battle-again">⚡ Battle Again</button></div>';
-    el.innerHTML = html;
-    renderBattleSides(); // refresh grace/levels on the cards
-
-    document.getElementById("battle-again").addEventListener("click", function () {
-      document.getElementById("battle-result").innerHTML = "";
-      champion = deck && deck.cards.length ? deck.draw() : champion;
-      renderBattleSides();
-    });
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   /* ------------------- toast ------------------------------- */
@@ -359,36 +361,14 @@
   /* ------------------- boot -------------------------------- */
 
   function boot() {
-    loadCollection();
-    loadDeck();
+    loadState();
 
-    // nav buttons
     document.querySelectorAll("[data-nav]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         show(btn.getAttribute("data-nav"));
       });
     });
-
-    document.getElementById("deck-name").addEventListener("input", function (e) {
-      if (deck) deck.name = e.target.value || "My Deck";
-    });
-    document.getElementById("deck-fill").addEventListener("click", fillDeck);
-    document.getElementById("deck-clear").addEventListener("click", function () {
-      deck = new Deck(document.getElementById("deck-name").value || "My Deck", "Pilgrim");
-      saveDeck();
-      renderBuilder();
-    });
-    document.getElementById("deck-save").addEventListener("click", function () {
-      if (!deck.isValid()) {
-        toast("Deck must have exactly " + DECK_SIZE + " cards.");
-        return;
-      }
-      saveDeck();
-      saveCollection();
-      toast("📿 Deck saved! You are ready for battle.");
-      show("home");
-    });
-    document.getElementById("begin-battle").addEventListener("click", runBattle);
+    document.getElementById("home-pilgrimage-btn").addEventListener("click", startOrContinuePilgrimage);
 
     show("home");
   }
