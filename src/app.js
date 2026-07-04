@@ -82,9 +82,28 @@
     return '<span class="rarity rarity-' + rarity.toLowerCase() + '">' + rarity + "</span>";
   }
 
-  function severityBadge(sev) {
-    return '<span class="severity severity-' + sev.toLowerCase() + '">' + sev + "</span>";
+  function severityBadge(sev, explain) {
+    return (
+      '<span class="severity severity-' + sev.toLowerCase() + '"' +
+      (explain ? ' data-explain="severity" title="' + EXPLAIN.severity + '"' : "") +
+      ">" + sev + "</span>"
+    );
   }
+
+  /* Stat explanations — shown on hover (title) and on tap (toast). */
+  const EXPLAIN = {
+    trial: "Trial — how many confrontations you have faced this pilgrimage.",
+    resolve: "Resolve ❤ — your endurance. Losing a trial costs 1. At 0 the pilgrimage falls.",
+    vanquished: "Vanquished 😇 — sins driven to power 0. Vanquish all 7 to triumph.",
+    dulia: "Dulia ✠ — devotion, earned by winning trials. Spend it to unlock saints and to invoke them.",
+    grace: "Grace ☩ — divine assistance, earned from every trial. Spend it in the Chapel to raise virtues, or keep " + PLEAD_COST + " to plead for Providence after a lost trial.",
+    fester: "Fester 🕯️ — trials until sin festers. Each fester, every standing sin grows in power — and each fester is worse than the last (+1, +2, then +3).",
+    power: "Power — the sin's strength. Your defense must beat it. Victory breaks it by your margin (" + DAMAGE_MIN + "–" + DAMAGE_CAP + "); at 0 the sin is vanquished. A loss feeds it +2.",
+    prevalence: "Prevalence 🎲 — how likely this sin is to manifest among your choices each turn. Spurning a manifested sin raises it; beating the sin lowers it.",
+    severity: "Severity — a label of the sin's current power: Venial ≤8, Grave 9–12, Mortal 13+. Graver sins pay more Grace and Dulia when beaten.",
+    odds: "Each choice shows your chance to win (the providence roll of 1–4 is the only unknown) and the power you would break — your margin of victory, at least " + DAMAGE_MIN + ", at most " + DAMAGE_CAP + ". ⚡ means this saint can surge when losing.",
+    virtue: "Virtues (1–10) — each sin assails its contrary virtue. Your own virtue is the foundation of every defense; saints add theirs on top.",
+  };
 
   function virtueBars(stats, dominantName) {
     let html = '<div class="virtues">';
@@ -264,24 +283,25 @@
     renderPool();
     if (pilgrimage.pending) {
       renderPendingResult();
-    } else if (lastResult) {
-      renderCommittedResult();
+    } else if (lastResult && lastResult.outcome) {
+      renderRunEnd(); // triumph or fall gets its own screen
     } else {
-      renderTrialSetup();
+      renderTrialSetup(); // mid-run aftermath appears inline above the next choice
     }
   }
 
   function renderHud() {
     const pg = pilgrimage;
     const untilFester = FESTER_INTERVAL - ((pg.trialNumber - 1) % FESTER_INTERVAL);
+    const item = (key, inner) =>
+      '<span class="hud-item" data-explain="' + key + '" title="' + EXPLAIN[key] + '">' + inner + "</span>";
     document.getElementById("pilgrimage-hud").innerHTML =
-      '<span class="hud-item">Trial <strong>' + pg.trialNumber + "</strong></span>" +
-      '<span class="hud-item">' + "❤".repeat(pg.resolve) + '<span class="heart-lost">' +
-      "♡".repeat(Math.max(0, MAX_RESOLVE - pg.resolve)) + "</span></span>" +
-      '<span class="hud-item">😇 <strong>' + pg.vanquishedCount() + "/7</strong></span>" +
-      '<span class="hud-item">✠ <strong>' + pilgrim.dulia + "</strong></span>" +
-      '<span class="hud-item">☩ <strong>' + pilgrim.grace + "</strong></span>" +
-      '<span class="hud-item" title="Trials until sin festers (+1 power to all)">🕯️ <strong>' + untilFester + "</strong></span>";
+      item("trial", "Trial <strong>" + pg.trialNumber + "</strong>") +
+      item("resolve", "❤".repeat(pg.resolve) + '<span class="heart-lost">' + "♡".repeat(Math.max(0, MAX_RESOLVE - pg.resolve)) + "</span>") +
+      item("vanquished", "😇 <strong>" + pg.vanquishedCount() + "/7</strong>") +
+      item("dulia", "✠ <strong>" + pilgrim.dulia + "</strong>") +
+      item("grace", "☩ <strong>" + pilgrim.grace + "</strong>") +
+      item("fester", "🕯️ <strong>" + untilFester + "</strong>");
   }
 
   /** The war map: every sin's current Power and Prevalence. */
@@ -300,8 +320,8 @@
         "<small>" + (vanquished ? "✨ vanquished" : "vs " + def.virtue + " · " + sev.toLowerCase() + (manifested ? " · manifesting" : "")) + "</small></span>" +
         '<span class="pool-track"><span class="pool-fill severity-fill-' + sev.toLowerCase() + '" style="width:' +
         Math.round((entry.power / SIN_POWER_CAP) * 100) + '%"></span></span>' +
-        '<span class="pool-power">' + entry.power + "</span>" +
-        '<span class="pool-prevalence" title="Prevalence — how likely to be called">' +
+        '<span class="pool-power" data-explain="power" title="' + EXPLAIN.power + '">' + entry.power + "</span>" +
+        '<span class="pool-prevalence" data-explain="prevalence" title="' + EXPLAIN.prevalence + '">' +
         (vanquished ? "—" : "🎲" + entry.prevalence) + "</span>" +
         "</div>";
     }
@@ -319,6 +339,18 @@
     return pct + "% · dmg " + dmg + (pv.surge ? " ⚡" : "");
   }
 
+  /** Full-sentence hover text for an invocation option. */
+  function previewTitle(sin, saint) {
+    const pv = previewTrial(pilgrim, sin, saint, { peterBlocked: pilgrimage.peterAutoLastTrial });
+    if (pv.auto) return "Keys of the Kingdom: this Venial sin falls outright, breaking " + pv.minDamage + " power.";
+    let t = "Win chance " + Math.round(pv.winChance * 100) + "%";
+    if (pv.winChance > 0 && pv.winChance < 1) t += " (needs providence " + pv.neededProvidence + "+ of 1–4)";
+    if (pv.winChance > 0) t += ". A victory breaks " + pv.minDamage + "–" + pv.maxDamage + " power";
+    t += ". " + (pv.surge ? "This saint may still surge when the tally is losing. " : "") +
+      "A loss costs 1 Resolve and feeds the sin.";
+    return t;
+  }
+
   function renderTrialSetup() {
     const pg = pilgrimage;
     const el = document.getElementById("pilgrimage-body");
@@ -329,8 +361,21 @@
     }
     const sin = manifested.find((s) => s.name === chosenSinName);
 
+    // --- last trial's aftermath, inline ----------------------
+    let html = "";
+    if (lastResult) {
+      const r = lastResult;
+      html +=
+        '<div class="result-summary ' + (r.victory ? "won" : "lost") + '" id="result-summary">' +
+        "<strong>" + (r.victory ? "✨ Trial " + (pg.trialNumber - 1) + " won" : "💔 Trial " + (pg.trialNumber - 1) + " lost") +
+        (r.victory ? " — broke " + r.damage + " power" : " — lost 1 Resolve") + ".</strong>" +
+        '<details><summary>What happened</summary><ul class="battle-log">' +
+        r.log.map((l) => "<li>" + esc(l) + "</li>").join("") +
+        "</ul></details></div>";
+    }
+
     // --- which sin to face -----------------------------------
-    let html = '<h4 class="picker-title">' + manifested.length + " temptations crowd around you — choose your battle</h4>";
+    html += '<h4 class="picker-title">' + manifested.length + " temptations crowd around you — choose your battle</h4>";
     html += '<div class="sin-choices">';
     for (const m of manifested) {
       const sel = m.name === chosenSinName;
@@ -351,15 +396,18 @@
       '<span class="card-emblem">' + sin.emblem + "</span>" +
       '<div class="card-id"><h3>' + sin.name + "</h3>" +
       '<p class="card-title">' + esc(sin.flavor) + "</p></div>" +
-      severityBadge(sin.severity) +
+      severityBadge(sin.severity, true) +
       "</div>" +
-      '<div class="sin-stats">Power <strong>' + sin.power + "</strong>" +
-      " · assails your <strong style=\"color:" + VIRTUE_COLORS[sin.virtue] + '">' + sin.virtue +
-      "</strong> (yours: " + pilgrim.virtues[sin.virtue] + ")</div>" +
+      '<div class="sin-stats"><span data-explain="power" title="' + EXPLAIN.power + '">Power <strong>' +
+      sin.power + "</strong></span>" +
+      ' · assails your <span data-explain="virtue" title="' + EXPLAIN.virtue + '"><strong style="color:' +
+      VIRTUE_COLORS[sin.virtue] + '">' + sin.virtue +
+      "</strong> (yours: " + pilgrim.virtues[sin.virtue] + ")</span></div>" +
       "</div>";
 
     // --- whom to invoke --------------------------------------
-    html += '<h4 class="picker-title">Whom will you invoke? <small>(✠ ' + pilgrim.dulia + " available)</small></h4>";
+    html += '<h4 class="picker-title">Whom will you invoke? <small>(✠ ' + pilgrim.dulia +
+      ' available · <span data-explain="odds" title="' + EXPLAIN.odds + '">what do the odds mean?</span>)</small></h4>';
     html += '<div class="opponent-picker">';
     for (const s of saints) {
       const unlocked = pilgrim.isUnlocked(s.name);
@@ -367,22 +415,24 @@
       const sel = chosenSaint === s;
       if (!unlocked) {
         html +=
-          '<button class="opponent-chip locked" disabled>🔒 ' + esc(s.name.replace("St. ", "")) +
+          '<button class="opponent-chip locked" disabled title="Unlock this saint in the Saints menu.">🔒 ' + esc(s.name.replace("St. ", "")) +
           ' <small>unlock ✠' + s.unlockCost + " in Saints</small></button>";
       } else if (resting > 0) {
         html +=
-          '<button class="opponent-chip resting" disabled>💤 ' + esc(s.name.replace("St. ", "")) +
+          '<button class="opponent-chip resting" disabled title="A saint who intercedes rests for the next ' + REST_TRIALS + ' trials.">💤 ' + esc(s.name.replace("St. ", "")) +
           ' <small>resting ' + resting + " trial" + (resting === 1 ? "" : "s") + "</small></button>";
       } else {
         html +=
           '<button class="opponent-chip' + (sel ? " selected" : "") + '" data-invoke="' + esc(s.name) + '"' +
+          ' title="' + previewTitle(sin, s) + '"' +
           (pg.canInvoke(s) ? "" : " disabled") + ">" +
           s.emblem + " " + esc(s.name.replace("St. ", "")) +
           ' <small>✠' + s.duliaCost + (s.patronSin === sin.name ? " ✨" : "") + " · " + previewText(sin, s) + "</small></button>";
       }
     }
     html +=
-      '<button class="opponent-chip alone' + (chosenSaint === null ? " selected" : "") + '" data-alone="1">' +
+      '<button class="opponent-chip alone' + (chosenSaint === null ? " selected" : "") + '" data-alone="1"' +
+      ' title="' + previewTitle(sin, null) + '">' +
       "🚶 Face it alone <small>✠0 · " + previewText(sin, null) + "</small></button>";
     html += "</div>";
 
@@ -413,6 +463,7 @@
       const res = pilgrimage.startTrial(chosenSinName, chosenSaint);
       if (res.error) { toast(res.error); return; }
       chosenSaint = undefined;
+      lastResult = null;
       if (res.victory) {
         commitPending(); // victories need no decision
       } else {
@@ -461,48 +512,32 @@
     document.getElementById("accept-btn").addEventListener("click", commitPending);
   }
 
-  /** The committed aftermath of a trial. */
-  function renderCommittedResult() {
+  /** The end of the run: triumph or fall. */
+  function renderRunEnd() {
     const el = document.getElementById("pilgrimage-body");
     const res = lastResult;
-
-    let verdict;
-    if (res.outcome === "triumphant") {
-      verdict = '<h3 class="verdict win">🎺 TRIUMPH — all seven sins vanquished!</h3>';
-    } else if (res.outcome === "fallen") {
-      verdict = '<h3 class="verdict lose">🌑 The pilgrimage has fallen</h3>';
-    } else if (res.victory) {
-      verdict = '<h3 class="verdict win">✨ The trial is won!</h3>';
-    } else {
-      verdict = '<h3 class="verdict lose">💔 The trial is lost</h3>';
-    }
+    const verdict =
+      res.outcome === "triumphant"
+        ? '<h3 class="verdict win">🎺 TRIUMPH — all seven sins vanquished!</h3>'
+        : '<h3 class="verdict lose">🌑 The pilgrimage has fallen</h3>';
     let html = '<div class="result-panel">' + verdict + '<ul class="battle-log">';
     for (const line of res.log) html += "<li>" + esc(line) + "</li>";
     html += "</ul>";
-
     if (res.outcome === "triumphant") {
       html +=
         '<p class="grace-summary">🌟 Every power broken in ' + pilgrimage.trialNumber +
         " trials. Triumphs: " + records.triumphs + "</p>" +
         '<button class="btn primary" id="pilgrimage-done">⛪ Return in Glory</button>';
-    } else if (res.outcome === "fallen") {
+    } else {
       html +=
         '<p class="grace-summary">😇 ' + pilgrimage.vanquishedCount() +
         "/7 sins vanquished this pilgrimage. The next begins anew — wiser.</p>" +
         '<button class="btn primary" id="pilgrimage-done">⛪ Return Home</button>';
-    } else {
-      html += '<button class="btn primary" id="next-trial">🚶 Continue the Road →</button>';
     }
     html += "</div>";
     el.innerHTML = html;
 
-    const next = document.getElementById("next-trial");
-    if (next) next.addEventListener("click", function () {
-      lastResult = null;
-      renderPilgrimage();
-    });
-    const done = document.getElementById("pilgrimage-done");
-    if (done) done.addEventListener("click", function () {
+    document.getElementById("pilgrimage-done").addEventListener("click", function () {
       pilgrimage = null;
       pilgrim = new Pilgrim();
       lastResult = null;
@@ -536,6 +571,32 @@
     });
     document.getElementById("home-pilgrimage-btn").addEventListener("click", beginPilgrimage);
     document.getElementById("abandon-btn").addEventListener("click", abandonRun);
+
+    // Tap any stat to have it explained (hover shows the same via title)
+    document.addEventListener("click", function (e) {
+      const el = e.target.closest("[data-explain]");
+      if (!el || e.target.closest("button")) return; // buttons keep their own action
+      const key = el.getAttribute("data-explain");
+      if (EXPLAIN[key]) toast(EXPLAIN[key]);
+    });
+
+    // The ❓ glossary
+    document.getElementById("help-btn").addEventListener("click", function () {
+      const panel = document.getElementById("help-panel");
+      panel.hidden = !panel.hidden;
+      if (!panel.hidden) {
+        panel.innerHTML =
+          '<h4 class="picker-title">📖 How to read the stats <button class="btn back" id="help-close">✕ close</button></h4>' +
+          '<ul class="help-list">' +
+          ["trial", "resolve", "vanquished", "dulia", "grace", "fester", "power", "prevalence", "severity", "odds", "virtue"]
+            .map((k) => "<li>" + EXPLAIN[k] + "</li>")
+            .join("") +
+          "</ul>";
+        document.getElementById("help-close").addEventListener("click", function () {
+          panel.hidden = true;
+        });
+      }
+    });
 
     // A pilgrimage in progress resumes directly — the main menu resets the game.
     show(pilgrimage ? "pilgrimage" : "home");

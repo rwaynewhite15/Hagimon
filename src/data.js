@@ -94,9 +94,9 @@ const SIN_DATA = [
 /* Severity is a live label for a sin's CURRENT power in the pool.
    grace/dulia: the prizes for winning a trial in that band. */
 const SEVERITY_TIERS = [
-  { name: "Venial", maxPower: 8, grace: 3, dulia: 3 },
-  { name: "Grave", maxPower: 12, grace: 4, dulia: 4 },
-  { name: "Mortal", maxPower: Infinity, grace: 5, dulia: 5 },
+  { name: "Venial", maxPower: 8, grace: 3, dulia: 2 },
+  { name: "Grave", maxPower: 12, grace: 4, dulia: 3 },
+  { name: "Mortal", maxPower: Infinity, grace: 5, dulia: 4 },
 ];
 
 /* ---------------- The Ten Saints ---------------------------
