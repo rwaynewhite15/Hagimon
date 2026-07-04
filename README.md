@@ -11,20 +11,20 @@ HAGIMON is a Saint-themed game of virtue and intercession that runs entirely in 
 ## How to Play
 
 ### You Are the Pilgrim
-You have the **seven virtues** — Faith, Hope, Charity, Justice, Prudence, Temperance, and Fortitude — each starting at a humble **3**. The saints don't battle each other; they assist *you* against the circumstances of sin.
+You have the **seven capital virtues** — Humility, Generosity, Chastity, Kindness, Temperance, Patience, and Diligence — each starting at a humble **3**. The saints don't battle each other; they assist *you* against the circumstances of sin.
 
 ### The Seven Deadly Sins
-Each sin assails the virtue that counters it:
+Each sin assails its traditional contrary virtue:
 
 | Sin | Assails your… |
 |---|---|
-| 👑 Pride | Faith |
-| 🪙 Greed | Justice |
-| 🥀 Lust | Prudence |
-| 🐍 Envy | Charity |
+| 👑 Pride | Humility |
+| 🪙 Greed | Generosity |
+| 🥀 Lust | Chastity |
+| 🐍 Envy | Kindness |
 | 🍷 Gluttony | Temperance |
-| 🌋 Wrath | Fortitude |
-| 🕸️ Sloth | Hope |
+| 🌋 Wrath | Patience |
+| 🕸️ Sloth | Diligence |
 
 ### The Pilgrimage
 A pilgrimage is **7 trials** — every deadly sin exactly once, in random order, escalating in severity: trials 1–3 are **Venial** (power 13–16), 4–5 are **Grave** (17–20), 6–7 are **Mortal** (21–24). You carry **3 Resolve (❤)**; losing a trial costs one. At zero, the pilgrimage ends — but Grace earned is never lost.
@@ -67,7 +67,7 @@ Your virtues, Grace, and any pilgrimage-in-progress are saved automatically in y
 | ☸️ St. Catherine | Blessed ✠3 | **The Unbroken Wheel** — an exactly tied trial becomes a victory | Envy |
 | 🕯️ St. Jude | Common ✠2 | **Patron of Lost Causes** — +2 when trailing the sin by 3 or more | Sloth |
 | 🎵 St. Cecilia | Common ✠2 | **Song of Heaven** — lowers the sin's power by 2 | Gluttony |
-| 🛡️ St. Demetrius | Common ✠2 | **Warrior's Stand** — +2 when the trial tests Fortitude | Wrath |
+| 🛡️ St. Demetrius | Common ✠2 | **Warrior's Stand** — a soldier's endurance: +2 when the trial tests Patience | Wrath |
 
 **Strategy tips:** match the saint's strong virtue to the sin's tested virtue; save your Canonized invocations for Mortal trials; Peter trivializes one Venial trial; Augustine shines early while your virtues are weak; and when Dulia runs low, a Common saint with the right virtue beats an expensive mismatch.
 

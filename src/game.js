@@ -235,9 +235,9 @@
           log.push("📖 Grace perfects weakness — " + saint.name + "'s Restless Heart grants +2 (defense " + defense + ").");
         }
 
-        if (saint.abilityKey === "demetrius" && tested === "Fortitude") {
+        if (saint.abilityKey === "demetrius" && tested === "Patience") {
           defense += 2;
-          log.push("🛡️ The trial tests Fortitude — " + saint.name + "'s Warrior's Stand grants +2 (defense " + defense + ").");
+          log.push("🛡️ The trial tests Patience — " + saint.name + "'s Warrior's Stand grants +2 (defense " + defense + ").");
         }
       } else {
         log.push("⚠️ You face the sin alone, with no intercession.");

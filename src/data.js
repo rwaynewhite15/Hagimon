@@ -9,24 +9,26 @@
    cost of invoking them (Common 2, Blessed 3, Canonized 4).
    ============================================================ */
 
+/* The seven capital virtues — the traditional contraries of the
+   seven deadly sins, in the classical pairing order. */
 const VIRTUE_NAMES = [
-  "Faith",
-  "Hope",
-  "Charity",
-  "Justice",
-  "Prudence",
+  "Humility",
+  "Generosity",
+  "Chastity",
+  "Kindness",
   "Temperance",
-  "Fortitude",
+  "Patience",
+  "Diligence",
 ];
 
 const VIRTUE_COLORS = {
-  Faith: "#a855f7", // purple
-  Hope: "#22d3ee", // cyan
-  Charity: "#ef4444", // red
-  Justice: "#f5c542", // gold
-  Prudence: "#34d399", // green
+  Humility: "#a855f7", // purple
+  Generosity: "#f5c542", // gold
+  Chastity: "#22d3ee", // cyan
+  Kindness: "#ef4444", // red
   Temperance: "#c4b5fd", // lavender
-  Fortitude: "#fb923c", // orange
+  Patience: "#34d399", // green
+  Diligence: "#fb923c", // orange
 };
 
 const RARITY_BONUS = { Common: 0, Blessed: 1, Canonized: 2 };
@@ -47,25 +49,25 @@ const SIN_DATA = [
   {
     name: "Pride",
     emblem: "👑",
-    virtue: "Faith",
+    virtue: "Humility",
     flavor: "A whisper says you have no need of God or neighbor.",
   },
   {
     name: "Greed",
     emblem: "🪙",
-    virtue: "Justice",
+    virtue: "Generosity",
     flavor: "The desire to possess grips your heart and closes your hand.",
   },
   {
     name: "Lust",
     emblem: "🥀",
-    virtue: "Prudence",
+    virtue: "Chastity",
     flavor: "A disordered desire clouds your judgment.",
   },
   {
     name: "Envy",
     emblem: "🐍",
-    virtue: "Charity",
+    virtue: "Kindness",
     flavor: "Your neighbor's blessing begins to feel like your own loss.",
   },
   {
@@ -77,13 +79,13 @@ const SIN_DATA = [
   {
     name: "Wrath",
     emblem: "🌋",
-    virtue: "Fortitude",
+    virtue: "Patience",
     flavor: "A burning anger demands to be fed.",
   },
   {
     name: "Sloth",
     emblem: "🕸️",
-    virtue: "Hope",
+    virtue: "Diligence",
     flavor: "A heavy despair whispers that nothing is worth doing.",
   },
 ];
@@ -104,7 +106,7 @@ const SAINT_DATA = [
     title: "The Poverello of Assisi",
     rarity: "Canonized",
     emblem: "🕊️",
-    baseStats: { Faith: 9, Hope: 8, Charity: 10, Justice: 6, Prudence: 7, Temperance: 9, Fortitude: 6 },
+    baseStats: { Humility: 9, Generosity: 10, Chastity: 7, Kindness: 9, Temperance: 8, Patience: 7, Diligence: 5 },
     ability: "Canticle of Creation — the pilgrim gains +1 bonus Grace after every trial, won or lost.",
     abilityKey: "francis",
     patronSin: "Greed",
@@ -115,18 +117,18 @@ const SAINT_DATA = [
     title: "The Archangel, Prince of the Heavenly Host",
     rarity: "Canonized",
     emblem: "⚔️",
-    baseStats: { Faith: 8, Hope: 6, Charity: 5, Justice: 10, Prudence: 6, Temperance: 5, Fortitude: 10 },
+    baseStats: { Humility: 10, Generosity: 5, Chastity: 8, Kindness: 5, Temperance: 5, Patience: 6, Diligence: 10 },
     ability: "Sword of Justice — +3 to the pilgrim's defense against Grave and Mortal sins.",
     abilityKey: "michael",
     patronSin: "Pride",
-    patronage: "Protection against evil; he cast down the proudest of angels",
+    patronage: "Protection against evil — his very name asks, \"Who is like God?\"",
   },
   {
     name: "St. Theresa",
     title: "The Little Flower of Lisieux",
     rarity: "Blessed",
     emblem: "🌹",
-    baseStats: { Faith: 8, Hope: 9, Charity: 9, Justice: 5, Prudence: 6, Temperance: 8, Fortitude: 5 },
+    baseStats: { Humility: 8, Generosity: 6, Chastity: 8, Kindness: 9, Temperance: 5, Patience: 10, Diligence: 5 },
     ability: "The Little Way — when she intercedes in a victory, her gentleness restores 1 Resolve.",
     abilityKey: "theresa",
     patronSin: "Wrath",
@@ -137,7 +139,7 @@ const SAINT_DATA = [
     title: "The Maid of Orléans",
     rarity: "Blessed",
     emblem: "🚩",
-    baseStats: { Faith: 9, Hope: 7, Charity: 5, Justice: 7, Prudence: 5, Temperance: 5, Fortitude: 10 },
+    baseStats: { Humility: 7, Generosity: 5, Chastity: 9, Kindness: 5, Temperance: 6, Patience: 5, Diligence: 10 },
     ability: "Voices of Victory — if the trial is being lost, she charges again: +1 to +3 to the defense.",
     abilityKey: "joan",
     patronSin: "Sloth",
@@ -148,7 +150,7 @@ const SAINT_DATA = [
     title: "Doctor of Grace, Bishop of Hippo",
     rarity: "Blessed",
     emblem: "📖",
-    baseStats: { Faith: 8, Hope: 6, Charity: 7, Justice: 6, Prudence: 10, Temperance: 6, Fortitude: 5 },
+    baseStats: { Humility: 7, Generosity: 6, Chastity: 10, Kindness: 6, Temperance: 6, Patience: 5, Diligence: 8 },
     ability: "Restless Heart — grace perfects weakness: +2 when the pilgrim's tested virtue is 4 or less.",
     abilityKey: "augustine",
     patronSin: "Lust",
@@ -159,7 +161,7 @@ const SAINT_DATA = [
     title: "The Philosopher of Alexandria",
     rarity: "Blessed",
     emblem: "☸️",
-    baseStats: { Faith: 7, Hope: 6, Charity: 6, Justice: 7, Prudence: 9, Temperance: 6, Fortitude: 6 },
+    baseStats: { Humility: 6, Generosity: 6, Chastity: 8, Kindness: 9, Temperance: 6, Patience: 7, Diligence: 6 },
     ability: "The Unbroken Wheel — her wisdom prevails: an exactly tied trial becomes a victory.",
     abilityKey: "catherine",
     patronSin: "Envy",
@@ -170,7 +172,7 @@ const SAINT_DATA = [
     title: "Apostle of the Impossible",
     rarity: "Common",
     emblem: "🕯️",
-    baseStats: { Faith: 8, Hope: 10, Charity: 7, Justice: 5, Prudence: 5, Temperance: 6, Fortitude: 6 },
+    baseStats: { Humility: 7, Generosity: 6, Chastity: 5, Kindness: 7, Temperance: 5, Patience: 8, Diligence: 9 },
     ability: "Patron of Lost Causes — +2 to the defense when it trails the sin's power by 3 or more.",
     abilityKey: "jude",
     patronSin: "Sloth",
@@ -181,7 +183,7 @@ const SAINT_DATA = [
     title: "Keeper of the Keys, First Among Apostles",
     rarity: "Canonized",
     emblem: "🗝️",
-    baseStats: { Faith: 10, Hope: 6, Charity: 6, Justice: 6, Prudence: 5, Temperance: 5, Fortitude: 8 },
+    baseStats: { Humility: 10, Generosity: 6, Chastity: 5, Kindness: 6, Temperance: 8, Patience: 5, Diligence: 8 },
     ability: "Keys of the Kingdom — Venial sins are banished outright, without a contest.",
     abilityKey: "peter",
     patronSin: "Gluttony",
@@ -192,7 +194,7 @@ const SAINT_DATA = [
     title: "The Singing Martyr of Rome",
     rarity: "Common",
     emblem: "🎵",
-    baseStats: { Faith: 8, Hope: 7, Charity: 7, Justice: 5, Prudence: 7, Temperance: 9, Fortitude: 5 },
+    baseStats: { Humility: 7, Generosity: 6, Chastity: 9, Kindness: 7, Temperance: 9, Patience: 6, Diligence: 5 },
     ability: "Song of Heaven — her hymn weakens the tempter: the sin's power is lowered by 2.",
     abilityKey: "cecilia",
     patronSin: "Gluttony",
@@ -203,8 +205,8 @@ const SAINT_DATA = [
     title: "The Great Martyr of Thessaloniki",
     rarity: "Common",
     emblem: "🛡️",
-    baseStats: { Faith: 7, Hope: 6, Charity: 5, Justice: 8, Prudence: 6, Temperance: 5, Fortitude: 10 },
-    ability: "Warrior's Stand — +2 to the defense when the trial tests Fortitude.",
+    baseStats: { Humility: 6, Generosity: 5, Chastity: 6, Kindness: 5, Temperance: 7, Patience: 10, Diligence: 8 },
+    ability: "Warrior's Stand — a soldier's endurance: +2 when the trial tests Patience.",
     abilityKey: "demetrius",
     patronSin: "Wrath",
     patronage: "Soldiers and the city of Thessaloniki",
