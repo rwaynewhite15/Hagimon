@@ -152,11 +152,7 @@
   /* ------------------- home screen ------------------------- */
 
   function renderHome() {
-    const info = document.getElementById("home-pilgrim-info");
-    info.innerHTML =
-      '<div class="deck-banner">🏆 Triumphs: <strong>' + records.triumphs + "</strong>" +
-      ' &nbsp;·&nbsp; ⚜️ Pilgrimages: <strong>' + records.pilgrimages + "</strong>" +
-      ' &nbsp;·&nbsp; 😇 Best: <strong>' + records.bestVanquished + "/7 sins</strong></div>";
+    // The main menu is a static guide to the game — no past stats.
   }
 
   /* ------------------- saints library ---------------------- */
