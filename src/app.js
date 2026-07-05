@@ -106,14 +106,15 @@
     alms: "Almsgiving 🕊️ — give " + ALMS_GRACE + " Grace away to gain ✠1 Dulia. Costly, but it is the way back when your purse runs empty.",
   };
 
-  function virtueBars(stats, dominantName) {
+  function virtueBars(stats, dominantName, testedName) {
     let html = '<div class="virtues">';
     for (const v of VIRTUE_NAMES) {
       const val = stats[v];
       const isDom = v === dominantName;
+      const isTested = v === testedName;
       html +=
-        '<div class="virtue-row' + (isDom ? " dominant" : "") + '">' +
-        '<span class="virtue-name">' + v + (isDom ? " ★" : "") + "</span>" +
+        '<div class="virtue-row' + (isDom ? " dominant" : "") + (isTested ? " tested" : "") + '">' +
+        '<span class="virtue-name">' + v + (isDom ? " ★" : "") + (isTested ? " ⚔" : "") + "</span>" +
         '<span class="virtue-track"><span class="virtue-fill" style="width:' +
         Math.min(100, Math.round((val / 12) * 100)) + "%;background:" + VIRTUE_COLORS[v] + '"></span></span>' +
         '<span class="virtue-val">' + val + "</span>" +
@@ -122,7 +123,7 @@
     return html + "</div>";
   }
 
-  function saintCard(saint) {
+  function saintCard(saint, testedVirtue) {
     const locked = !pilgrim.isUnlocked(saint.name);
     return (
       '<div class="card rarity-border-' + saint.rarity.toLowerCase() + (locked ? " locked" : "") + '">' +
@@ -135,7 +136,7 @@
       '<div class="card-meta">✠ Invoke: ' + saint.duliaCost +
       (locked ? ' · <span class="locked-note">Locked — unlock for ✠' + saint.unlockCost + "</span>" : "") +
       "</div>" +
-      virtueBars(saint.getStatsWithRarity(), saint.getDominantVirtue().name) +
+      virtueBars(saint.getStatsWithRarity(), saint.getDominantVirtue().name, testedVirtue) +
       '<p class="card-ability"><strong>Special Ability:</strong> ' + esc(saint.specialAbility) + "</p>" +
       '<p class="card-ability"><strong>Invoked against:</strong> ' + esc(saint.patronSin) +
       " (+" + PATRON_BONUS + " in those trials)</p>" +
@@ -447,6 +448,35 @@
       (pilgrim.grace >= ALMS_GRACE ? "" : " disabled") + ">" +
       "🕊️ Offer alms <small>☩" + ALMS_GRACE + " → ✠1 (have ☩" + pilgrim.grace + ")</small></button>";
     html += "</div>";
+
+    // --- the invoked saint's stats, before committing ---------
+    if (chosenSaint) {
+      const pv = previewTrial(pilgrim, sin, chosenSaint, { peterBlocked: pg.peterAutoLastTrial });
+      let tally;
+      if (pv.auto) {
+        tally = "🗝️ The Keys turn — this Venial sin falls outright, breaking " + pv.minDamage + " power.";
+      } else {
+        tally =
+          "⚔ Defense " + pv.base + " + 🙏 1–4 vs power " + pv.effectivePower +
+          (pv.effectivePower !== sin.power ? " (hymn-weakened from " + sin.power + ")" : "") +
+          " — " + Math.round(pv.winChance * 100) + "% to win" +
+          (pv.winChance > 0 ? ", breaking " + (pv.minDamage === pv.maxDamage ? pv.minDamage : pv.minDamage + "–" + pv.maxDamage) + " power" : "") +
+          (pv.surge ? " ⚡may surge if losing" : "") + ".";
+      }
+      html +=
+        '<div id="invoked-preview">' +
+        '<h4 class="picker-title">' + chosenSaint.emblem + " " + esc(chosenSaint.name) + " will intercede</h4>" +
+        '<p class="tally-line" data-explain="odds" title="' + EXPLAIN.odds + '">' + tally + "</p>" +
+        saintCard(chosenSaint, sin.virtue) +
+        "</div>";
+    } else if (chosenSaint === null) {
+      const pv = previewTrial(pilgrim, sin, null, {});
+      html +=
+        '<div id="invoked-preview">' +
+        '<p class="tally-line">🚶 Alone: your ' + sin.virtue + " " + pilgrim.virtues[sin.virtue] +
+        " + 🙏 1–4 vs power " + sin.power + " — " + Math.round(pv.winChance * 100) + "% to win.</p>" +
+        "</div>";
+    }
 
     html += '<button class="btn battle wide" id="face-trial"' +
       (chosenSaint === undefined ? " disabled" : "") + ">🙏 FACE THE TRIAL</button>";
