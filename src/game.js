@@ -464,6 +464,8 @@
 
     return {
       auto: false,
+      base: base, // deterministic defense before providence
+      effectivePower: power, // after Cecilia's hymn, if any
       winChance: winChance,
       neededProvidence: needed,
       minDamage: minDamage,
